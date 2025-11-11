@@ -158,7 +158,7 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
         const startedAt = performance.now();
 
         try {
-          const result = await processVoiceSample(audioBlob, sessionId ?? undefined);
+          const result = await processVoiceSample(audioBlob, sessionId ?? undefined, language);
           const userTranscript = result.transcript || (language === 'sw' ? 'Sauti yako imepokelewa.' : 'Your voice input was received.');
 
           const userMessage: AIMessage = {

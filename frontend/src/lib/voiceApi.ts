@@ -12,7 +12,11 @@ export interface VoiceProcessResult {
 
 const DEFAULT_API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
-export async function processVoiceSample(blob: Blob, sessionId?: string): Promise<VoiceProcessResult> {
+export async function processVoiceSample(
+  blob: Blob,
+  sessionId?: string,
+  language: 'sw' | 'en' = 'sw'
+): Promise<VoiceProcessResult> {
   const form = new FormData();
   const extension = blob.type.includes('webm')
     ? 'webm'
@@ -23,6 +27,7 @@ export async function processVoiceSample(blob: Blob, sessionId?: string): Promis
   if (sessionId) {
     form.append('session_id', sessionId);
   }
+  form.append('language', language);
 
   const response = await fetch(`${DEFAULT_API}/voice/process`, {
     method: 'POST',

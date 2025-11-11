@@ -16,7 +16,7 @@ from urllib.parse import quote
 from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
@@ -73,7 +73,8 @@ class VoiceUpload(BaseModel):
     session_id: Optional[str] = Field(default=None, description="UUID v4 session identifier")
     language: str = Field(default="sw", regex=r"^(sw|en)$")
 
-    @validator("file")
+    @field_validator("file")
+    @classmethod
     def validate_audio(cls, value: bytes) -> bytes:
         if not value:
             raise ValueError("Empty audio payload")
@@ -86,7 +87,8 @@ class VoiceUpload(BaseModel):
             raise ValueError("Invalid audio format")
         return value
 
-    @validator("session_id")
+    @field_validator("session_id")
+    @classmethod
     def validate_session(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
@@ -115,6 +117,18 @@ def get_memory() -> ContextMemory:
 
 def get_chama_client() -> ChamaClient:
     return ChamaClient()
+
+
+@app.get("/chamas")
+async def list_chamas(
+    limit: int = 6,
+    chama: ChamaClient = Depends(get_chama_client),
+) -> Dict[str, object]:
+    if not chama.is_ready:
+        raise HTTPException(status_code=503, detail="Blockchain client not configured.")
+
+    summaries = await chama.list_chamas(limit=limit)
+    return {"chamas": [summary.to_dict() for summary in summaries]}
 
 
 @app.post("/voice/process")
