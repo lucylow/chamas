@@ -1,163 +1,183 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title Chama
- * @dev Individual chama group contract (used as implementation for proxy clones)
- * Handles member management, contributions, and rotation logic
+ * @dev Represents an individual savings/investment group deployed as a minimal proxy clone.
+ *      All core state updates are orchestrated through the factory contract.
  */
-contract Chama is ReentrancyGuard, Initializable {
-    uint256 public chamaId;
-    address public factory;
-    address public creator;
-    address public tokenAddress;
+contract Chama is ReentrancyGuard {
+    using SafeERC20 for IERC20;
 
+    error Chama__AlreadyInitialized();
+    error Chama__ZeroAddress();
+    error Chama__Inactive();
+    error Chama__OnlyFactory();
+    error Chama__AlreadyMember();
+    error Chama__MaxMembersReached();
+    error Chama__NotMember();
+    error Chama__InsufficientContribution(uint256 provided, uint256 required);
+    error Chama__RotationNotReady(uint256 currentTime, uint256 nextRotationTime);
+    error Chama__InsufficientBalance(uint256 available, uint256 required);
+    error Chama__NoMembers();
+    error Chama__InvalidContributionConfiguration();
+    error Chama__InvalidMaxMembers();
+
+    event MemberJoined(address indexed member, uint256 memberCount);
+    event ContributionRecorded(address indexed member, uint256 amount, uint256 totalContributed);
+    event RotationProcessed(uint256 indexed round, address indexed recipient, uint256 payoutAmount);
+    event Deactivated();
+
+    string public name;
+    string public description;
     uint256 public contributionAmount;
     uint256 public contributionFrequency;
+    address public contributionToken;
     uint256 public maxMembers;
-    uint256 public createdAt;
-
-    uint256 public currentRound = 1;
     uint256 public nextRotationTime;
+    uint256 public currentRound;
+    bool public active;
 
-    address[] public members;
-    mapping(address => bool) public isMember;
+    address public factory;
+    address public creator;
 
-    mapping(address => uint256) public totalContributed;
-    mapping(uint256 => mapping(address => uint256)) public roundContributions; // round => member => amount
-    mapping(uint256 => address) public roundRecipient; // round => recipient address
-    mapping(uint256 => bool) public roundPaid; // round => has payout been made
-    mapping(address => uint256[]) public recipientHistory; // recipient => list of rounds they received
+    bool private initialized;
 
-    event MemberAdded(address indexed member, uint256 timestamp);
-    event ContributionRecorded(address indexed member, uint256 amount, uint256 round);
-    event RotationProcessed(uint256 indexed round, address indexed recipient, uint256 totalFunds);
-    event PayoutReleased(uint256 indexed round, address indexed recipient, uint256 amount);
+    address[] private memberList;
+    mapping(address => bool) private memberStatus;
+    mapping(address => uint256) private memberContributionTotals;
+    mapping(uint256 => address) private rotationRecipients;
 
     modifier onlyFactory() {
-        require(msg.sender == factory, "Only factory can call");
+        if (msg.sender != factory) revert Chama__OnlyFactory();
         _;
     }
 
-    modifier onlyMember() {
-        require(isMember[msg.sender], "Not a member");
+    modifier whenActive() {
+        if (!active) revert Chama__Inactive();
         _;
     }
 
-    modifier onlyCreator() {
-        require(msg.sender == creator, "Only creator can call");
-        _;
-    }
-
+    /**
+     * @notice Initializes the chama clone. Callable only once by the factory.
+     */
     function initialize(
-        uint256 _chamaId,
+        string memory _name,
+        string memory _description,
+        address _factory,
         address _creator,
-        address _tokenAddress,
+        address _token,
         uint256 _contributionAmount,
         uint256 _contributionFrequency,
         uint256 _maxMembers
-    ) external initializer {
-        chamaId = _chamaId;
-        factory = msg.sender;
+    ) external {
+        if (initialized) revert Chama__AlreadyInitialized();
+        if (_factory == address(0) || _creator == address(0) || _token == address(0)) {
+            revert Chama__ZeroAddress();
+        }
+        if (_contributionAmount == 0 || _contributionFrequency == 0) {
+            revert Chama__InvalidContributionConfiguration();
+        }
+        if (_maxMembers == 0) revert Chama__InvalidMaxMembers();
+
+        name = _name;
+        description = _description;
+        factory = _factory;
         creator = _creator;
-        tokenAddress = _tokenAddress;
+        contributionToken = _token;
         contributionAmount = _contributionAmount;
         contributionFrequency = _contributionFrequency;
         maxMembers = _maxMembers;
-        createdAt = block.timestamp;
+        active = true;
+        initialized = true;
+
+        memberList.push(_creator);
+        memberStatus[_creator] = true;
+
         nextRotationTime = block.timestamp + _contributionFrequency;
     }
 
-    function addMember(address _member) external onlyFactory {
-        require(!isMember[_member], "Already a member");
-        require(members.length < maxMembers, "Chama is full");
-        members.push(_member);
-        isMember[_member] = true;
-        emit MemberAdded(_member, block.timestamp);
+    function deactivate() external onlyFactory whenActive {
+        active = false;
+        emit Deactivated();
     }
 
-    function getMemberCount() external view returns (uint256) {
-        return members.length;
+    function join(address member) external onlyFactory whenActive {
+        if (member == address(0)) revert Chama__ZeroAddress();
+        if (memberStatus[member]) revert Chama__AlreadyMember();
+        if (memberList.length >= maxMembers) revert Chama__MaxMembersReached();
+
+        memberStatus[member] = true;
+        memberList.push(member);
+
+        emit MemberJoined(member, memberList.length);
     }
 
-    function getMembers() external view returns (address[] memory) {
-        return members;
+    function recordContribution(address member, uint256 amount) external onlyFactory whenActive nonReentrant {
+        if (!memberStatus[member]) revert Chama__NotMember();
+        if (amount < contributionAmount) revert Chama__InsufficientContribution(amount, contributionAmount);
+
+        memberContributionTotals[member] += amount;
+        emit ContributionRecorded(member, amount, memberContributionTotals[member]);
     }
 
-    function recordContribution(address _member, uint256 _amount) external onlyFactory nonReentrant {
-        require(isMember[_member], "Not a member");
-        require(_amount == contributionAmount, "Incorrect amount");
-        if (block.timestamp >= nextRotationTime && members.length > 0) {
-            processRotation();
+    function processRotation()
+        external
+        onlyFactory
+        whenActive
+        nonReentrant
+        returns (address recipient, uint256 payoutAmount, uint256 roundIndex)
+    {
+        if (memberList.length == 0) revert Chama__NoMembers();
+        if (block.timestamp < nextRotationTime) {
+            revert Chama__RotationNotReady(block.timestamp, nextRotationTime);
         }
-        roundContributions[currentRound][_member] += _amount;
-        totalContributed[_member] += _amount;
-        emit ContributionRecorded(_member, _amount, currentRound);
-    }
 
-    function getMemberContribution(address _member, uint256 _round) external view returns (uint256) {
-        return roundContributions[_round][_member];
-    }
+        roundIndex = currentRound;
+        uint256 memberIndex = roundIndex % memberList.length;
+        recipient = memberList[memberIndex];
 
-    function processRotation() public {
-        require(members.length > 0, "No members");
-        require(block.timestamp >= nextRotationTime, "Rotation not yet due");
-        uint256 round = currentRound;
-        uint256 memberIndex = (round - 1) % members.length;
-        address nextRecipient = members[memberIndex];
-        roundRecipient[round] = nextRecipient;
-        recipientHistory[nextRecipient].push(round);
-        uint256 payoutAmount = calculatePayout(round);
-        currentRound++;
+        payoutAmount = calculatePayout(roundIndex);
+        uint256 balance = IERC20(contributionToken).balanceOf(address(this));
+        if (balance < payoutAmount) {
+            revert Chama__InsufficientBalance(balance, payoutAmount);
+        }
+
+        rotationRecipients[roundIndex] = recipient;
+        currentRound = roundIndex + 1;
         nextRotationTime = block.timestamp + contributionFrequency;
-        emit RotationProcessed(round, nextRecipient, payoutAmount);
+
+        IERC20(contributionToken).safeTransfer(recipient, payoutAmount);
+
+        emit RotationProcessed(roundIndex, recipient, payoutAmount);
     }
 
-    function distributePayout(
-        address _recipient,
-        uint256 _round,
-        uint256 _amount
-    ) external onlyFactory nonReentrant {
-        require(!roundPaid[_round], "Round already paid");
-        require(roundRecipient[_round] == _recipient || roundRecipient[_round] == address(0), "Invalid recipient");
-        uint256 balance = IERC20(tokenAddress).balanceOf(address(this));
-        require(balance >= _amount, "Insufficient balance");
-        roundRecipient[_round] = _recipient;
-        roundPaid[_round] = true;
-        IERC20(tokenAddress).transfer(_recipient, _amount);
-        emit PayoutReleased(_round, _recipient, _amount);
+    function calculatePayout(uint256 /*round*/ ) public view returns (uint256) {
+        return contributionAmount * memberList.length;
     }
 
-    function calculatePayout(uint256 _round) public view returns (uint256) {
-        uint256 total = 0;
-        for (uint256 i = 0; i < members.length; i++) {
-            total += roundContributions[_round][members[i]];
-        }
-        return total;
+    function isMember(address account) external view returns (bool) {
+        return memberStatus[account];
     }
 
-    function getCurrentRound() external view returns (uint256) {
-        return currentRound;
+    function memberCount() external view returns (uint256) {
+        return memberList.length;
     }
 
-    function getRotationRecipient(uint256 _round) external view returns (address) {
-        return roundRecipient[_round];
+    function members() external view returns (address[] memory) {
+        return memberList;
     }
 
-    function getBalance() external view returns (uint256) {
-        return IERC20(tokenAddress).balanceOf(address(this));
+    function totalContributed(address member) external view returns (uint256) {
+        return memberContributionTotals[member];
     }
 
-    function getRoundPaid(uint256 _round) external view returns (bool) {
-        return roundPaid[_round];
-    }
-
-    function getRecipientHistory(address _member) external view returns (uint256[] memory) {
-        return recipientHistory[_member];
+    function rotationRecipient(uint256 round) external view returns (address) {
+        return rotationRecipients[round];
     }
 }
 
