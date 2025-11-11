@@ -115,14 +115,14 @@ export default function Home({ language }: HomeProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      {/* Hero Section */}
-      <section className="container py-20 md:py-32">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+      {/* Hero Section with Pattern */}
+      <section className="container py-20 md:py-32 pattern-bg">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-gradient animate-fade-in">
             {text.hero.title}
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
             {text.hero.subtitle}
           </p>
           
@@ -139,9 +139,9 @@ export default function Home({ language }: HomeProps) {
       </section>
 
       {/* Features Section */}
-      <section className="container py-20 bg-white">
+      <section className="container py-20">
         <div className="text-center space-y-4 mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold">{text.features.title}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gradient">{text.features.title}</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {text.features.subtitle}
           </p>
@@ -149,9 +149,11 @@ export default function Home({ language }: HomeProps) {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {text.features.items.map((feature, index) => (
-            <Card key={index} className="border-2 hover:border-primary transition-colors">
+            <Card key={index} className="border-2 hover:border-primary transition-all hover-lift shadow-md hover:shadow-glow">
               <CardHeader>
-                <feature.icon className="h-10 w-10 text-primary mb-2" />
+                <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center mb-4 shadow-glow">
+                  <feature.icon className="h-6 w-6 text-white" />
+                </div>
                 <CardTitle>{feature.title}</CardTitle>
               </CardHeader>
               <CardContent>
@@ -163,23 +165,23 @@ export default function Home({ language }: HomeProps) {
       </section>
 
       {/* How It Works */}
-      <section className="container py-20">
+      <section className="container py-20 glass rounded-3xl">
         <div className="text-center space-y-4 mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold">{text.howItWorks.title}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gradient">{text.howItWorks.title}</h2>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {text.howItWorks.steps.map((step, index) => (
             <div key={index} className="relative">
               <div className="flex flex-col items-center text-center space-y-4">
-                <div className="h-16 w-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
+                <div className="h-16 w-16 rounded-full gradient-hero text-white flex items-center justify-center text-2xl font-bold shadow-glow pulse-ring">
                   {step.number}
                 </div>
                 <h3 className="text-xl font-semibold">{step.title}</h3>
                 <p className="text-muted-foreground">{step.description}</p>
               </div>
               {index < text.howItWorks.steps.length - 1 && (
-                <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-primary/30" />
+                <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-primary to-secondary" />
               )}
             </div>
           ))}
@@ -187,24 +189,26 @@ export default function Home({ language }: HomeProps) {
       </section>
 
       {/* Stats Section */}
-      <section className="container py-20 bg-green-50 rounded-3xl">
-        <div className="text-center space-y-4 mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold">{text.stats.title}</h2>
-        </div>
+      <section className="container py-20">
+        <div className="gradient-hero rounded-3xl p-12 text-white shadow-xl">
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold">{text.stats.title}</h2>
+          </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {text.stats.items.map((stat, index) => (
-            <div key={index} className="text-center">
-              <p className="text-4xl md:text-5xl font-bold text-primary">{stat.value}</p>
-              <p className="text-muted-foreground mt-2">{stat.label}</p>
-            </div>
-          ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {text.stats.items.map((stat, index) => (
+              <div key={index} className="text-center">
+                <p className="text-4xl md:text-5xl font-bold">{stat.value}</p>
+                <p className="text-white/80 mt-2 font-medium">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="container py-20">
-        <Card className="bg-gradient-primary text-white border-0">
+        <Card className="gradient-primary text-white border-0 shadow-glow hover-lift">
           <CardHeader className="text-center space-y-4 pb-8">
             <CardTitle className="text-3xl md:text-4xl">{text.cta.title}</CardTitle>
             <CardDescription className="text-white/90 text-lg max-w-2xl mx-auto">
@@ -213,7 +217,7 @@ export default function Home({ language }: HomeProps) {
           </CardHeader>
           <CardContent className="flex justify-center">
             <Link href="/create">
-              <Button size="lg" variant="secondary" className="text-lg px-8">
+              <Button size="lg" variant="secondary" className="text-lg px-8 hover:scale-105 transition-transform shadow-lg">
                 {text.cta.button}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

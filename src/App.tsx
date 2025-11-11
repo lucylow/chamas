@@ -23,7 +23,7 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav className="bg-white border-b sticky top-0 z-40">
+      <nav className="glass border-b sticky top-0 z-40 shadow-sm">
         <div className="container">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -163,14 +163,18 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-12">
-        <div className="container text-center">
-          <p className="text-sm text-gray-400">
+      <footer className="gradient-hero text-white py-12 mt-12">
+        <div className="container text-center space-y-4">
+          <div className="flex items-center justify-center gap-2">
+            <Users className="h-6 w-6" />
+            <span className="text-2xl font-bold">{text.appName}</span>
+          </div>
+          <p className="text-sm text-white/80">
             {language === 'sw'
               ? '© 2025 Chamas. Haki zote zimehifadhiwa.'
               : '© 2025 Chamas. All rights reserved.'}
           </p>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-white/60">
             {language === 'sw'
               ? 'Inayotumia Ethereum • Msaidizi wa A.I. wa Kiswahili'
               : 'Powered by Ethereum • Swahili AI Assistant'}
