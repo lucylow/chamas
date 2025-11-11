@@ -13,6 +13,9 @@ export interface Chama {
   nextPayout: Date;
   createdBy: string;
   status: 'active' | 'completed';
+  onChainId?: bigint;
+  contributionToken?: string;
+  rawContributionAmount?: bigint;
 }
 
 export interface Member {

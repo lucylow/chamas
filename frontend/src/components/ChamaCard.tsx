@@ -1,10 +1,14 @@
-import { Users, Calendar, Coins, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Calendar, Coins, TrendingUp, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Chama } from '@/lib/mockData';
 import { formatCurrency, formatDate, formatDateSwahili, getTimeUntil, getTimeUntilSwahili } from '@/lib/utils';
 import { Link } from 'wouter';
+import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useChamaActions } from '@/hooks/useChamaActions';
 
 interface ChamaCardProps {
   chama: Chama;
@@ -12,6 +16,16 @@ interface ChamaCardProps {
 }
 
 export default function ChamaCard({ chama, language }: ChamaCardProps) {
+  const { isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+  const [error, setError] = useState<string | null>(null);
+
+  const { joinChama, isJoining } = useChamaActions({
+    chamaId: chama.onChainId,
+    contributionAmount: chama.rawContributionAmount,
+    tokenAddress: chama.contributionToken,
+  });
+
   const text = {
     members: language === 'sw' ? 'Wanachama' : 'Members',
     contribution: language === 'sw' ? 'Mchango' : 'Contribution',
@@ -23,6 +37,8 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
     completed: language === 'sw' ? 'Imekamilika' : 'Completed',
     weekly: language === 'sw' ? 'kila wiki' : 'weekly',
     monthly: language === 'sw' ? 'kila mwezi' : 'monthly',
+    connectWallet: language === 'sw' ? 'Unganisha pochi yako kwanza' : 'Connect your wallet first',
+    joinError: language === 'sw' ? 'Imeshindikana kujiunga na chama' : 'Unable to join chama',
   };
 
   const name = language === 'sw' ? chama.nameSwahili : chama.name;
@@ -104,11 +120,44 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
           </Button>
         </Link>
         {chama.members < chama.maxMembers && chama.status === 'active' && (
-          <Button className="flex-1">
-            {text.join}
+          <Button
+            className="flex-1"
+            disabled={isJoining || !chama.onChainId}
+            onClick={async () => {
+              if (!isConnected) {
+                openConnectModal?.();
+                return;
+              }
+              if (!chama.onChainId) {
+                setError(text.joinError);
+                return;
+              }
+              try {
+                setError(null);
+                await joinChama();
+              } catch (err: any) {
+                const message = err?.shortMessage || err?.message || text.joinError;
+                setError(message);
+                console.error('Failed to join chama:', err);
+              }
+            }}
+          >
+            {isJoining ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {language === 'sw' ? 'Inajiunga...' : 'Joining...'}
+              </span>
+            ) : (
+              text.join
+            )}
           </Button>
         )}
       </CardFooter>
+      {error && (
+        <div className="px-6 pb-4">
+          <p className="text-xs text-red-600">{error}</p>
+        </div>
+      )}
     </Card>
   );
 }

@@ -11,11 +11,11 @@ A **chama** (Swahili for "group") is a traditional community-based savings and i
 ## ✨ Features
 
 ### 🔗 Ethereum Blockchain Integration
-- **MetaMask Wallet Connection** - Secure wallet integration
-- **Smart Contract Powered** - Transparent, immutable transactions
-- **Sepolia Testnet** - Safe execution on `chainId 11155111`
-- **On-chain Transparency** - All contributions and payouts recorded as events
-- **Prometheus Metrics** - `/metrics` endpoint reports contract latency + request counts
+- **MetaMask / RainbowKit** – Wallet onboarding and multi-connector support
+- **Verified Smart Contracts** – `ChamaFactory`, `Chama` clone implementation, `ChamaToken`
+- **Sepolia Testnet** – Live transactions on `chainId 11155111`
+- **On-chain Transparency** – Contributions, joins, rotations emitted as indexed events
+- **Deployment Scripts** – Deploy, interact, and seed demo data via Hardhat scripts
 
 ### 🤖 Swahili AI Assistant
 - **Bilingual Support** - Swahili (Kiswahili) and English
@@ -65,7 +65,8 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 # Smart contracts (Hardhat)
 cd ../contracts
 npm install
-npm test
+npx hardhat compile
+npx hardhat test
 
 # Optional: run everything with Docker
 cd ..
@@ -87,6 +88,19 @@ Frontend (`frontend/.env.local`):
 
 - `VITE_APP_NAME` – display name (defaults to Chamas)
 - `VITE_API_URL` – base URL for the FastAPI backend (e.g. `http://localhost:8000`)
+- `VITE_CHAMA_FACTORY_ADDRESS` – deployed factory on Sepolia
+- `VITE_USDC_ADDRESS` – ERC20 used for contributions (default Sepolia USDC faucet token)
+- `VITE_SEPOLIA_CHAIN_ID` – defaults to `11155111`
+- `VITE_SEPOLIA_RPC_URL` – RPC for wagmi public client
+- `VITE_WALLETCONNECT_PROJECT_ID` – WalletConnect app id
+
+Copy `frontend/env.local.sample` to `.env.local` to get started.
+
+Contracts (`contracts/.env.local` or exported before running scripts):
+
+- `SEPOLIA_RPC_URL`
+- `PRIVATE_KEY`
+- `ETHERSCAN_API_KEY` (optional)
 
 ## 🎯 How to Use
 
@@ -128,7 +142,7 @@ Frontend (`frontend/.env.local`):
 
 - **Frontend**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS 4 + shadcn/ui
-- **Blockchain**: ethers.js + wagmi + viem
+- **Blockchain**: Hardhat + Solidity 0.8.20 + ethers.js + wagmi + viem
 - **AI**: FastAPI (Whisper ASR + LLaMA 3.1/Gemini + Google/Coqui TTS)
 - **Routing**: wouter (lightweight React router)
 - **State**: React Query
@@ -153,7 +167,18 @@ chamas/
 └── package.json                 # Root scripts (optional)
 ```
 
-For the full NCED architecture breakdown see `docs/NCED_IMPLEMENTATION_GUIDE.md`.
+For design details see `docs/chamas-smart-contracts.md`. Deployment playbook lives in `docs/chamas-deployment-quickstart.md`.                                  
+
+### Deployed Contracts (Sepolia)
+
+Addresses are generated via `contracts/scripts/deploy.js` and saved in `contracts/deployment.json`. Update this section after each deployment.
+
+| Contract | Address | Notes |
+| --- | --- | --- |
+| ChamaFactory | _TBD_ | Primary registry |
+| Chama Implementation | _TBD_ | Clone target |
+| ChamaToken | _TBD_ | Governance token |
+| USDC (Test Asset) | `0x6f14c9687ccf0532413d582b8f6320802f89f90a` | Faucet mintable |
 
 ### System Architecture (High-Level)
 
@@ -330,9 +355,9 @@ This project addresses the $10,000 AI & Swahili LLM Challenge by:
 - [x] Mobile-responsive UI
 
 ### Phase 2: Smart Contracts
-- [ ] Deploy Chama smart contracts
-- [ ] Real on-chain contributions
-- [ ] Automated payout distribution
+- [x] Deploy Chama smart contracts (factory + clones + token)
+- [x] Real on-chain contributions via ERC20 approval flow
+- [x] Automated payout distribution (rotation + SafeERC20 transfers)
 - [ ] Multi-signature wallets
 
 ### Phase 3: Advanced Features

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ChamaCard from '@/components/ChamaCard';
 import { mockChamas, type Chama } from '@/lib/mockData';
-import { fetchChamas, type RemoteChama } from '@/lib/chamaApi';
+import { useChamaRegistry } from '@/hooks/useChamaRegistry';
 
 interface ChamasProps {
   language: 'sw' | 'en';
@@ -15,44 +15,28 @@ export default function Chamas({ language }: ChamasProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFrequency, setFilterFrequency] = useState<'all' | 'weekly' | 'monthly'>('all');
   const [chamas, setChamas] = useState<Chama[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [backendError, setBackendError] = useState<string | null>(null);
+  const { data: onChainChamas, isLoading, error } = useChamaRegistry({ language });
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (onChainChamas && onChainChamas.length > 0) {
+      setChamas(onChainChamas);
+      setBackendError(null);
+      return;
+    }
 
-    async function loadChamas() {
-      try {
-        setIsLoading(true);
-        setBackendError(null);
-        const remote = await fetchChamas(9, controller.signal);
-        if (!remote.length) {
-          setChamas(mockChamas);
-          return;
-        }
-        const hydrated = remote.map((item, index) => {
-          const fallback = mockChamas[index] ?? mockChamas.find(chama => chama.id === `chama-${item.id}`);
-          return transformRemoteChama(item, fallback);
-        });
-        setChamas(hydrated);
-      } catch (error: any) {
-        if (error?.name === 'AbortError') return;
-        console.error('Failed to fetch chamas from backend:', error);
+    if (!isLoading) {
+      if (error) {
+        console.error('Failed to load chamas from blockchain:', error);
         setBackendError(
           language === 'sw'
             ? 'Imeshindikana kupata data kutoka kwa blockchain. Tunaonyesha data ya mfano.'
             : 'Unable to load blockchain data. Showing demo data instead.'
         );
-        setChamas(mockChamas);
-      } finally {
-        setIsLoading(false);
       }
+      setChamas(mockChamas);
     }
-
-    loadChamas();
-
-    return () => controller.abort();
-  }, [language]);
+  }, [onChainChamas, isLoading, error, language]);
 
   const text = {
     title: language === 'sw' ? 'Chamas Zilizopo' : 'Available Chamas',
@@ -175,37 +159,5 @@ export default function Chamas({ language }: ChamasProps) {
       </div>
     </div>
   );
-}
-
-function transformRemoteChama(remote: RemoteChama, fallback?: Chama): Chama {
-  const weekInSeconds = 60 * 60 * 24 * 10;
-  const frequency = remote.contributionFrequency > 0 && remote.contributionFrequency <= weekInSeconds ? 'weekly' : 'monthly';
-  const fallbackNextPayout =
-    fallback?.nextPayout ??
-    new Date(Date.now() + (remote.contributionFrequency > 0 ? remote.contributionFrequency : 60 * 60 * 24 * 30) * 1000);
-
-  const contributionEth = Number(remote.contributionEth ?? 0);
-  const totalFundsEth = Number(remote.totalFundsEth ?? 0);
-
-  const ownerShort = remote.owner
-    ? `${remote.owner.slice(0, 6)}...${remote.owner.slice(-4)}`
-    : '0x0000...0000';
-
-  return {
-    id: `chama-${remote.id}`,
-    name: remote.name,
-    nameSwahili: fallback?.nameSwahili ?? remote.name,
-    description: fallback?.description ?? `Community savings pool managed by ${ownerShort}`,
-    descriptionSwahili: fallback?.descriptionSwahili ?? `Chama cha jamii kinachosimamiwa na ${ownerShort}`,
-    contributionAmount: contributionEth.toFixed(4),
-    frequency,
-    members: remote.members,
-    maxMembers: fallback?.maxMembers ?? Math.max(remote.members + 5, remote.members || 10),
-    totalSavings: totalFundsEth.toFixed(4),
-    contractAddress: fallback?.contractAddress ?? remote.owner,
-    nextPayout: fallbackNextPayout,
-    createdBy: fallback?.createdBy ?? remote.owner,
-    status: remote.active ? 'active' : 'completed',
-  };
 }
 

@@ -5,6 +5,7 @@ import { Button } from './components/ui/button';
 import SwahiliChatbot from './components/SwahiliChatbot';
 import Home from './pages/Home';
 import Chamas from './pages/Chamas';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 function App() {
   const [language, setLanguage] = useState<'sw' | 'en'>('en');
@@ -124,6 +125,9 @@ function App() {
                   <Globe className="h-4 w-4 mr-2" />
                   {language === 'sw' ? 'Switch to English' : 'Badilisha kwa Kiswahili'}
                 </Button>
+                <div className="mt-2">
+                  <ConnectButton accountStatus="address" chainStatus="icon" showBalance={false} />
+                </div>
               </div>
             </div>
           )}
