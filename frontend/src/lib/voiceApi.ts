@@ -45,7 +45,8 @@ export async function processVoiceSample(blob: Blob, sessionId?: string): Promis
   const transcript = transcriptHeader ? decodeURIComponent(transcriptHeader) : '';
 
   const buffer = await response.arrayBuffer();
-  const audioBlob = new Blob([buffer], { type: 'audio/mpeg' });
+  const mimeType = response.headers.get('content-type') ?? 'audio/mpeg';
+  const audioBlob = new Blob([buffer], { type: mimeType });
   const audioUrl = URL.createObjectURL(audioBlob);
 
   return {

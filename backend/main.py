@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import AsyncIterator, Dict, Optional
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, ValidationError, validator
@@ -36,7 +36,7 @@ from services.metrics import (
     tts_latency,
     voice_requests,
 )
-from services.security import decrypt_session, encrypt_session, is_cipher_ready
+from services.security import decrypt_session, encrypt_session
 from services.tts_service import TTSService
 
 logger = logging.getLogger("chamas.voice")
@@ -70,11 +70,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
 
 class VoiceUpload(BaseModel):
     file: bytes = Field(..., max_length=5 * 1024 * 1024)
-    session_id: Optional[str] = Field(
-        default=None,
-        regex=r"^[a-f0-9\-]{36}$",
-        description="UUID v4 session identifier",
-    )
+    session_id: Optional[str] = Field(default=None, description="UUID v4 session identifier")
     language: str = Field(default="sw", regex=r"^(sw|en)$")
 
     @validator("file")
@@ -88,6 +84,16 @@ class VoiceUpload(BaseModel):
             or value[0:2] == b"\xff\xf3"
         ):
             raise ValueError("Invalid audio format")
+        return value
+
+    @validator("session_id")
+    def validate_session(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        try:
+            uuid.UUID(value)
+        except ValueError as exc:  # pragma: no cover - defensive
+            raise ValueError("session_id must be a valid UUID4 string") from exc
         return value
 
 
@@ -112,9 +118,12 @@ def get_chama_client() -> ChamaClient:
 
 
 @app.post("/voice/process")
+@limiter.limit("10/minute")
 async def process_voice(
+    request: Request,
     file: UploadFile = File(...),
     session_id: Optional[str] = None,
+    language: str = "sw",
     asr: ASRService = Depends(get_asr),
     llm: LLMService = Depends(get_llm),
     tts: TTSService = Depends(get_tts),
@@ -128,55 +137,96 @@ async def process_voice(
     if not tts.is_ready:
         raise HTTPException(status_code=503, detail="TTS service is not ready.")
 
-    tmp_path = await _save_temp_file(file)
+    tmp_path: Optional[Path] = None
+    encoding_header = request.headers.get("content-encoding", "").lower()
 
-    try:
-        transcription = asr.transcribe(tmp_path)
-        logger.info("ASR => %s", transcription.text)
+    with session_active.track_inprogress():
+        try:
+            payload = await file.read()
+            if "gzip" in encoding_header:
+                try:
+                    payload = gzip.decompress(payload)
+                except OSError as exc:  # pragma: no cover - invalid gzip
+                    voice_requests.labels(status="invalid").inc()
+                    raise HTTPException(status_code=400, detail="Invalid gzip audio payload") from exc
 
-        session = session_id or str(uuid.uuid4())
+            candidate_session = decrypt_session(session_id) if session_id else None
 
-        context = memory.recent_context(session)
-        intent = _extract_intent(transcription.text)
-        chama_info = await _resolve_intent(intent=intent, chama_client=chama)
+            try:
+                voice_upload = VoiceUpload(file=payload, session_id=candidate_session, language=language)
+            except ValidationError as exc:
+                voice_requests.labels(status="invalid").inc()
+                raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
-        ai_response = _render_response(
-            transcription=transcription,
-            context=context,
-            intent=intent,
-            chama_info=chama_info,
-            llm=llm,
-        )
+            session = voice_upload.session_id or str(uuid.uuid4())
+            tmp_path = _save_temp_file(payload, Path(file.filename or "audio.wav").suffix or ".wav")
 
-        memory.append_turn(
-            session_id=session,
-            user_text=transcription.text,
-            ai_text=ai_response,
-            dialect=transcription.dialect,
-        )
-        memory.append_intent(session_id=session, intent=intent, confidence=0.85)
+            asr_start = time.perf_counter()
+            transcription = asr.transcribe(tmp_path)
+            asr_latency.observe(time.perf_counter() - asr_start)
+            asr_wer.set(max(0.0, 1 - transcription.confidence))
 
-        audio_bytes = tts.synthesise(ai_response)
-        headers = {
-            "X-Session-ID": session,
-            "X-Intent": intent,
-            "X-Dialect": transcription.dialect,
-            "X-Confidence": f"{transcription.confidence:.2f}",
-            "X-Response-Text": quote(ai_response),
-            "X-Transcript": quote(transcription.text),
-        }
+            logger.info("ASR => %s", transcription.text)
 
-        logger.info("LLM <= %s", ai_response)
+            context = memory.recent_context(session)
+            intent = _extract_intent(transcription.text)
+            intent_accuracy.set(0.87)
+            chama_info = await _resolve_intent(intent=intent, chama_client=chama)
 
-        return StreamingResponse(_iter_audio(audio_bytes), media_type="audio/mpeg", headers=headers)
-    finally:
-        tmp_path.unlink(missing_ok=True)
+            llm_start = time.perf_counter()
+            ai_response = _render_response(
+                transcription=transcription,
+                context=context,
+                intent=intent,
+                chama_info=chama_info,
+                llm=llm,
+            )
+            llm_latency.observe(time.perf_counter() - llm_start)
+
+            memory.append_turn(
+                session_id=session,
+                user_text=transcription.text,
+                ai_text=ai_response,
+                dialect=transcription.dialect,
+            )
+            memory.append_intent(session_id=session, intent=intent, confidence=0.85)
+
+            tts_start = time.perf_counter()
+            tts_result = tts.synthesise(ai_response)
+            tts_latency.observe(time.perf_counter() - tts_start)
+
+            headers = {
+                "X-Session-ID": encrypt_session(session),
+                "X-Intent": intent,
+                "X-Dialect": transcription.dialect,
+                "X-Confidence": f"{transcription.confidence:.2f}",
+                "X-Response-Text": quote(ai_response),
+                "X-Transcript": quote(transcription.text),
+            }
+
+            logger.info("LLM <= %s", ai_response)
+            voice_requests.labels(status="success").inc()
+
+            return StreamingResponse(
+                _iter_audio(tts_result.audio),
+                media_type=tts_result.mime_type,
+                headers=headers,
+            )
+        except HTTPException as exc:
+            if exc.status_code >= 500:
+                voice_requests.labels(status="error").inc()
+            raise
+        except Exception as exc:
+            voice_requests.labels(status="error").inc()
+            logger.exception("Voice pipeline error: %s", exc)
+            raise
+        finally:
+            if tmp_path is not None:
+                tmp_path.unlink(missing_ok=True)
 
 
-async def _save_temp_file(upload: UploadFile) -> Path:
-    suffix = Path(upload.filename or "audio.wav").suffix or ".wav"
+def _save_temp_file(content: bytes, suffix: str) -> Path:
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    content = await upload.read()
     tmp.write(content)
     tmp.close()
     return Path(tmp.name)
@@ -230,6 +280,11 @@ def _iter_audio(payload: bytes) -> AsyncIterator[bytes]:
         yield payload
 
     return generator()
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")

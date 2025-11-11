@@ -147,6 +147,7 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
       };
 
       recorder.onstop = async () => {
+        setIsRecording(false);
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         chunksRef.current = [];
         setIsProcessing(true);
@@ -182,6 +183,8 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
             stopSpeaking();
           }
           const audio = new Audio(result.audioUrl);
+          audio.addEventListener('ended', () => URL.revokeObjectURL(result.audioUrl));
+          audio.addEventListener('error', () => URL.revokeObjectURL(result.audioUrl));
           audio.play().catch(err => console.warn('Audio playback failed', err));
         } catch (error) {
           console.error('Voice processing failed:', error);

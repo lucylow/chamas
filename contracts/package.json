@@ -1,0 +1,15 @@
+{
+  "name": "chamas-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npx hardhat test",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.ts --network sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.12"
+  }
+}
+

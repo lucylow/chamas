@@ -4,13 +4,15 @@ Swahili text-to-speech service.
 Uses Google Cloud Text-to-Speech when credentials are available, and falls back
 to the open source ``coqui-tts`` pipeline if Google Cloud credentials have not
 been configured. The service exposes a single ``synthesise`` method that
-returns raw MP3 bytes ready to stream back to the client.
+returns the generated audio bytes together with an appropriate MIME type so the
+caller can stream the response straight to the browser.
 """
 
 from __future__ import annotations
 
-import io
 import os
+import tempfile
+from dataclasses import dataclass
 from typing import Optional
 
 try:
@@ -25,6 +27,12 @@ except Exception:  # pragma: no cover - optional dependency
 
 
 DEFAULT_VOICE = "sw-KE-Standard-A"
+
+
+@dataclass
+class TTSResult:
+    audio: bytes
+    mime_type: str
 
 
 class TTSService:
@@ -52,7 +60,7 @@ class TTSService:
     def is_ready(self) -> bool:
         return bool(self._gcloud_client or self._coqui_pipeline)
 
-    def synthesise(self, text: str) -> bytes:
+    def synthesise(self, text: str) -> TTSResult:
         if not text.strip():
             raise ValueError("Cannot synthesise empty text.")
 
@@ -67,7 +75,7 @@ class TTSService:
             "au weka coqui-tts kabla ya kuendelea."
         )
 
-    def _synthesise_google(self, text: str) -> bytes:
+    def _synthesise_google(self, text: str) -> TTSResult:
         assert self._gcloud_client is not None  # for type checkers
 
         request = texttospeech.SynthesizeSpeechRequest(  # type: ignore[attr-defined]
@@ -82,13 +90,24 @@ class TTSService:
             ),
         )
         response = self._gcloud_client.synthesize_speech(request=request)
-        return response.audio_content  # type: ignore[return-value]
+        return TTSResult(audio=response.audio_content, mime_type="audio/mpeg")  # type: ignore[arg-type]
 
-    def _synthesise_coqui(self, text: str) -> bytes:
+    def _synthesise_coqui(self, text: str) -> TTSResult:
         assert self._coqui_pipeline is not None
 
-        buffer = io.BytesIO()
-        self._coqui_pipeline.tts_to_file(text=text, file_path=buffer)  # type: ignore[attr-defined]
-        return buffer.getvalue()
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            self._coqui_pipeline.tts_to_file(text=text, file_path=tmp_path)  # type: ignore[attr-defined]
+            with open(tmp_path, "rb") as audio_file:
+                data = audio_file.read()
+        finally:
+            try:
+                os.remove(tmp_path)
+            except FileNotFoundError:
+                pass
+
+        return TTSResult(audio=data, mime_type="audio/wav")
 
 
