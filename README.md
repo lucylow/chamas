@@ -42,34 +42,46 @@ A **chama** (Swahili for "group") is a traditional community-based savings and i
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm
+- Node.js 18+
+- Python 3.11+
+- Docker (optional but recommended for local parity)
 - MetaMask browser extension
 - Sepolia testnet ETH (get from [Sepolia Faucet](https://sepoliafaucet.com/))
 
 ### Installation
 
 ```bash
-# Install dependencies
-pnpm install
+# Backend (FastAPI voice pipeline)
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# Start development server
-pnpm dev
+# Frontend (React + Vite)
+cd ../frontend
+npm install
+npm run dev  # http://localhost:8080
 
-# Build for production
-pnpm build
-
-# Preview production build
-pnpm preview
+# Optional: run everything with Docker
+cd ..
+docker-compose up --build
 ```
 
 ### Environment Variables
 
-Create a `.env` file (optional for demo):
+Backend (`backend/.env` or exported before running `uvicorn`):
 
-```env
-VITE_APP_NAME=Chamas
-VITE_OPENAI_API_KEY=your_openai_api_key_here
-```
+- `REDIS_URL` – optional Redis instance for session memory (`redis://localhost:6379/0`)
+- `SEPOLIA_RPC_URL` – Infura/Alchemy endpoint for Sepolia
+- `CHAMA_FACTORY_ADDRESS` – deployed ChamaFactory contract
+- `OPENAI_API_KEY` / `OPENAI_BASE_URL` – optional OpenAI-compatible LLM endpoint
+- `GOOGLE_APPLICATION_CREDENTIALS` – path to Google Cloud TTS service account
+
+Frontend (`frontend/.env.local`):
+
+- `VITE_APP_NAME` – display name (defaults to Chamas)
+- `VITE_API_URL` – base URL for the FastAPI backend (e.g. `http://localhost:8000`)
 
 ## 🎯 How to Use
 
@@ -112,7 +124,7 @@ VITE_OPENAI_API_KEY=your_openai_api_key_here
 - **Frontend**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS 4 + shadcn/ui
 - **Blockchain**: ethers.js + wagmi + viem
-- **AI**: Web Speech API + OpenAI-compatible LLM
+- **AI**: FastAPI (Whisper ASR + LLaMA 3.1/Gemini + Google/Coqui TTS)
 - **Routing**: wouter (lightweight React router)
 - **State**: React Query
 
@@ -120,27 +132,22 @@ VITE_OPENAI_API_KEY=your_openai_api_key_here
 
 ```
 chamas/
-├── src/
-│   ├── components/       # Reusable UI components
-│   │   ├── ui/          # shadcn/ui components
-│   │   ├── WalletConnect.tsx
-│   │   ├── SwahiliChatbot.tsx
-│   │   └── ChamaCard.tsx
-│   ├── pages/           # Route pages
-│   │   ├── Home.tsx
-│   │   └── Chamas.tsx
-│   ├── lib/             # Utilities and logic
-│   │   ├── ethereum.ts  # Wallet & blockchain
-│   │   ├── swahiliAI.ts # AI assistant
-│   │   ├── mockData.ts  # Demo data
-│   │   └── utils.ts     # Helpers
-│   ├── App.tsx          # Main app component
-│   ├── main.tsx         # Entry point
-│   └── index.css        # Global styles
-├── public/              # Static assets
-├── index.html           # HTML template
-└── package.json         # Dependencies
+├── backend/                 # FastAPI voice pipeline + Swahili AI services
+│   ├── main.py              # /voice/process endpoint
+│   ├── services/            # ASR, LLM, TTS, Redis memory
+│   ├── blockchain/          # Sepolia contract client helpers
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/                # React + Vite Lovable client
+│   ├── src/                 # Components, pages, lib utilities
+│   ├── public/
+│   └── Dockerfile
+├── docs/                    # Architecture & playbooks
+├── docker-compose.yml       # Local dev topology
+└── package.json             # Root scripts (optional)
 ```
+
+For the full NCED architecture breakdown see `docs/NCED_IMPLEMENTATION_GUIDE.md`.
 
 ## 🌐 Swahili Language Support
 
@@ -163,8 +170,8 @@ chamas/
 - **Dialect Support**: Kenyan Swahili (sw-KE)
 - **Code-Switching**: Mixed Swahili-English
 - **Financial Vocabulary**: Chama-specific terms
-- **Voice Recognition**: Web Speech API
-- **Text-to-Speech**: Natural Swahili pronunciation
+- **Voice Recognition**: Whisper ASR backend with browser fallback
+- **Text-to-Speech**: Google Cloud / Coqui Swahili voices
 
 ## 🔐 Security
 

@@ -1,0 +1,15 @@
+fastapi==0.115.2
+uvicorn[standard]==0.32.0
+python-multipart==0.0.9
+redis==5.1.0
+web3==6.15.1
+openai==1.44.0
+transformers==4.44.2
+torch==2.4.1
+whisper==1.0.0
+google-cloud-texttospeech==2.16.5
+TTS==0.22.0
+slowapi==0.1.9
+prometheus-client==0.20.0
+cryptography==43.0.1
+
