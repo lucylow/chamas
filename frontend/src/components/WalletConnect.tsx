@@ -1,51 +1,89 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Wallet, LogOut, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { connectWallet, formatAddress, formatEth, WalletState } from '@/lib/ethereum';
+import { connectWallet, formatAddress, formatEth, getWalletState, WalletState } from '@/lib/ethereum';
 
 interface WalletConnectProps {
   language: 'sw' | 'en';
 }
 
+const EMPTY_WALLET_STATE: WalletState = {
+  address: null,
+  balance: null,
+  chainId: null,
+  isConnected: false,
+};
+
 export default function WalletConnect({ language }: WalletConnectProps) {
-  const [wallet, setWallet] = useState<WalletState>({
-    address: null,
-    balance: null,
-    chainId: null,
-    isConnected: false,
-  });
+  const [wallet, setWallet] = useState<WalletState>(EMPTY_WALLET_STATE);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const refreshWallet = useCallback(async () => {
+    if (typeof window.ethereum === 'undefined') {
+      return;
+    }
+
+    try {
+      const walletState = await getWalletState();
+      setWallet(walletState);
+      setError(null);
+    } catch (err: any) {
+      if (err?.message?.includes('No wallet accounts')) {
+        setWallet(EMPTY_WALLET_STATE);
+        setError(null);
+        return;
+      }
+
+      console.error('Connection refresh error:', err);
+      setWallet(EMPTY_WALLET_STATE);
+      setError(err?.message || 'Failed to refresh wallet state.');
+    }
+  }, []);
 
   useEffect(() => {
     // Check if already connected
     checkConnection();
-    
-    // Listen for account changes
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', () => window.location.reload());
+
+    if (!window.ethereum?.on) {
+      return;
     }
-    
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      }
+
+    const handleChainChanged = (chainIdHex: string) => {
+      const parsedChainId = Number.parseInt(chainIdHex, 16);
+      setWallet(prev => ({
+        ...prev,
+        chainId: Number.isNaN(parsedChainId) ? prev.chainId : parsedChainId,
+      }));
+      refreshWallet();
     };
-  }, []);
+
+    const handleDisconnectEvent = () => {
+      setWallet(EMPTY_WALLET_STATE);
+      setError(null);
+    };
+
+    // Listen for provider events
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
+    window.ethereum.on('disconnect', handleDisconnectEvent);
+
+    return () => {
+      if (!window.ethereum?.removeListener) {
+        return;
+      }
+
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
+      window.ethereum.removeListener('disconnect', handleDisconnectEvent);
+    };
+  }, [refreshWallet]);
 
   async function checkConnection() {
     if (typeof window.ethereum === 'undefined') return;
-    
-    try {
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      if (accounts.length > 0) {
-        await handleConnect();
-      }
-    } catch (err) {
-      console.error('Error checking connection:', err);
-    }
+
+    await refreshWallet();
   }
 
   async function handleConnect() {
@@ -66,25 +104,17 @@ export default function WalletConnect({ language }: WalletConnectProps) {
   function handleAccountsChanged(accounts: string[]) {
     if (accounts.length === 0) {
       // User disconnected
-      setWallet({
-        address: null,
-        balance: null,
-        chainId: null,
-        isConnected: false,
-      });
+      setWallet(EMPTY_WALLET_STATE);
+      setError(null);
     } else {
       // Account changed
-      handleConnect();
+      refreshWallet();
     }
   }
 
   function handleDisconnect() {
-    setWallet({
-      address: null,
-      balance: null,
-      chainId: null,
-      isConnected: false,
-    });
+    setWallet(EMPTY_WALLET_STATE);
+    setError(null);
   }
 
   const text = {

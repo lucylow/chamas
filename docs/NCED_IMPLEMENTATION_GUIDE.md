@@ -123,8 +123,8 @@ python backend/scripts/finetune_whisper.py
 ## 5. Smart Contract Testing & Deployment
 
 - Hardhat configuration (`hardhat.config.js`) pins Solidity `0.8.20` and wires Sepolia credentials via environment variables.
-- Tests at `contracts/test/ChamaFactory.test.ts` cover creation flows, member joins, and contribution accounting, using ethers.js assertions.
-- Deploy script (`contracts/scripts/deploy.ts`) outputs the final `ChamaFactory` address; propagate to `CHAMA_FACTORY_ADDRESS`.
+- Tests at `contracts/test/ChamaFactory.test.js` cover creation flows, member joins, and contribution accounting, using ethers.js assertions.
+- Deploy script (`contracts/scripts/deploy.js`) outputs the final `ChamaFactory` address; propagate to `CHAMA_FACTORY_ADDRESS`.
 
 Execute:
 
@@ -132,7 +132,7 @@ Execute:
 cd contracts
 npm install
 npx hardhat test
-npx hardhat run scripts/deploy.ts --network sepolia
+npx hardhat run scripts/deploy.js --network sepolia
 ```
 
 ---
@@ -200,7 +200,7 @@ locust -f backend/tests/locustfile.py --host=http://localhost:8000
 2. Copy `env.local` (or equivalent) into `.env`, populate secrets.
 3. Run `docker-compose up --build`.
 4. Optionally fine-tune Whisper: `python backend/scripts/finetune_whisper.py`.
-5. Deploy contracts: `npx hardhat run scripts/deploy.ts --network sepolia`.
+5. Deploy contracts: `npx hardhat run scripts/deploy.js --network sepolia`.
 6. Start the frontend: `npm run dev -- --host` inside `frontend/`.
 7. Test end-to-end by recording a voice message in the UI.
 

@@ -27,18 +27,40 @@ export const SEPOLIA_RPC_URL = 'https://sepolia.infura.io/v3/';
 // Mock contract address (for demo)
 export const CHAMA_CONTRACT_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
 
-export async function connectWallet(): Promise<WalletState> {
+export async function getWalletState(options: { requestPermission?: boolean; enforceNetwork?: boolean } = {}): Promise<WalletState> {
+  const { requestPermission = false, enforceNetwork = true } = options;
+
   if (typeof window.ethereum === 'undefined') {
     throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
   }
 
   try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const accounts = await provider.send('eth_requestAccounts', []);
-    const signer = await provider.getSigner();
-    const address = await signer.getAddress();
+    const method = requestPermission ? 'eth_requestAccounts' : 'eth_accounts';
+    let provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send(method, []);
+
+    if (!accounts || accounts.length === 0) {
+      throw new Error('No wallet accounts found. Please unlock MetaMask and try again.');
+    }
+
+    const address = accounts[0];
+    let network = await provider.getNetwork();
+
+    if (enforceNetwork && Number(network.chainId) !== SEPOLIA_CHAIN_ID) {
+      try {
+        await switchToSepolia();
+      } catch (err: any) {
+        if (err?.code === 4001) {
+          throw new Error('MetaMask connection requires switching to the Sepolia network.');
+        }
+        throw new Error(err?.message || 'Failed to switch to the Sepolia network.');
+      }
+
+      provider = new ethers.BrowserProvider(window.ethereum);
+      network = await provider.getNetwork();
+    }
+
     const balance = await provider.getBalance(address);
-    const network = await provider.getNetwork();
 
     return {
       address,
@@ -50,6 +72,10 @@ export async function connectWallet(): Promise<WalletState> {
     console.error('Error connecting wallet:', error);
     throw new Error(error.message || 'Failed to connect wallet');
   }
+}
+
+export async function connectWallet(): Promise<WalletState> {
+  return getWalletState({ requestPermission: true });
 }
 
 export async function disconnectWallet(): Promise<void> {

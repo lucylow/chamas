@@ -148,8 +148,12 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
 
       recorder.onstop = async () => {
         setIsRecording(false);
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const chunkCopy = [...chunksRef.current];
         chunksRef.current = [];
+        if (chunkCopy.length === 0) {
+          return;
+        }
+        const audioBlob = new Blob(chunkCopy, { type: 'audio/webm' });
         setIsProcessing(true);
         const startedAt = performance.now();
 

@@ -51,17 +51,21 @@ A **chama** (Swahili for "group") is a traditional community-based savings and i
 ### Installation
 
 ```bash
+# Frontend (React + Vite)
+cd frontend
+npm install
+npm run dev  # http://localhost:5173
+
 # Backend (FastAPI voice pipeline)
-cd backend
-python -m venv .venv
-source .venv/bin/activate
+cd ../backend
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# Frontend (React + Vite)
-cd ../frontend
+# Smart contracts (Hardhat)
+cd ../contracts
 npm install
-npm run dev  # http://localhost:8080
+npm test
 
 # Optional: run everything with Docker
 cd ..
@@ -75,6 +79,7 @@ Backend (`backend/.env` or exported before running `uvicorn`):
 - `REDIS_URL` – optional Redis instance for session memory (`redis://localhost:6379/0`)
 - `SEPOLIA_RPC_URL` – Infura/Alchemy endpoint for Sepolia
 - `CHAMA_FACTORY_ADDRESS` – deployed ChamaFactory contract
+- `ENCRYPTION_KEY` – 32-byte base64 Fernet key for session tokens
 - `OPENAI_API_KEY` / `OPENAI_BASE_URL` – optional OpenAI-compatible LLM endpoint
 - `GOOGLE_APPLICATION_CREDENTIALS` – path to Google Cloud TTS service account
 
