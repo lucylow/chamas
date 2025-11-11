@@ -1,7 +1,5 @@
 # Chamas - Community Savings Powered by Ethereum
 
-![Chamas Banner](https://via.placeholder.com/1200x400/22c55e/ffffff?text=Chamas+-+Akiba+ya+Jamii)
-
 ## 🌍 Overview
 
 **Chamas** is an Ethereum-powered community savings platform designed for West Africa, featuring a Swahili AI assistant for financial inclusion. Built for the **ETH Safari Hackathon 2025** - AI & Swahili LLM Challenge ($10,000 track).
@@ -15,8 +13,9 @@ A **chama** (Swahili for "group") is a traditional community-based savings and i
 ### 🔗 Ethereum Blockchain Integration
 - **MetaMask Wallet Connection** - Secure wallet integration
 - **Smart Contract Powered** - Transparent, immutable transactions
-- **Sepolia Testnet** - Safe testing environment
-- **On-chain Transparency** - All contributions and payouts recorded
+- **Sepolia Testnet** - Safe execution on `chainId 11155111`
+- **On-chain Transparency** - All contributions and payouts recorded as events
+- **Prometheus Metrics** - `/metrics` endpoint reports contract latency + request counts
 
 ### 🤖 Swahili AI Assistant
 - **Bilingual Support** - Swahili (Kiswahili) and English
@@ -31,6 +30,7 @@ A **chama** (Swahili for "group") is a traditional community-based savings and i
 - **Automated Contributions** - Smart contract-based payments
 - **Transparent Payouts** - Fair rotation system
 - **Member Dashboard** - Track your savings and payouts
+- **Sepolia Contract Reader** - FastAPI fetches live data via `AsyncWeb3`
 
 ### 📱 Mobile-First Design
 - **Responsive UI** - Works on all devices
@@ -137,22 +137,65 @@ Frontend (`frontend/.env.local`):
 
 ```
 chamas/
-├── backend/                 # FastAPI voice pipeline + Swahili AI services
-│   ├── main.py              # /voice/process endpoint
-│   ├── services/            # ASR, LLM, TTS, Redis memory
-│   ├── blockchain/          # Sepolia contract client helpers
+├── backend/                     # FastAPI voice pipeline + Swahili AI services
+│   ├── main.py                  # /voice/process + /chamas endpoints
+│   ├── services/                # ASR, LLM, TTS, Redis memory, security
+│   ├── blockchain/              # AsyncWeb3 Sepolia client helpers
 │   ├── requirements.txt
 │   └── Dockerfile
-├── frontend/                # React + Vite Lovable client
-│   ├── src/                 # Components, pages, lib utilities
+├── frontend/                    # React + Vite Lovable client
+│   ├── src/                     # Components, pages, lib utilities
 │   ├── public/
 │   └── Dockerfile
-├── docs/                    # Architecture & playbooks
-├── docker-compose.yml       # Local dev topology
-└── package.json             # Root scripts (optional)
+├── contracts/                   # Hardhat configuration, Solidity, deployment scripts
+├── docs/                        # Architecture & playbooks
+├── docker-compose.yml           # Local dev topology
+└── package.json                 # Root scripts (optional)
 ```
 
 For the full NCED architecture breakdown see `docs/NCED_IMPLEMENTATION_GUIDE.md`.
+
+### System Architecture (High-Level)
+
+```mermaid
+graph TD
+    A[Voice/Web User] -->|Audio/Text| B[Frontend (React/Vite)]
+    B -->|REST: POST /voice/process| C[FastAPI Backend]
+    B -->|REST: GET /chamas| C
+    C -->|ASR| D[Whisper Base<br/>CUDA/CPU inference]
+    C -->|LLM| E[LLaMA 3.1 8B<br/>or OpenAI-compatible endpoint]
+    C -->|TTS| F[Google Cloud TTS<br/>or Coqui]
+    C -->|AsyncWeb3| G[Sepolia RPC Provider]
+    G --> H[ChamaFactory Contract]
+    C -->|Redis Sessions| I[Redis Memory Store]
+    C -->|Prometheus| J[Metrics Collector]
+```
+
+### Voice Processing Sequence
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UI as VoiceChat.tsx
+    participant API as FastAPI /voice/process
+    participant ASR as Whisper ASR
+    participant LLM as LLM Service
+    participant TTS as TTS Service
+    participant CH as AsyncWeb3 ChamaClient
+
+    U->>UI: Capture Opus/WebM via MediaRecorder
+    UI->>API: multipart/form-data upload
+    API->>ASR: transcribe(language=sw)
+    ASR-->>API: transcript + confidence + dialect
+    API->>CH: getChamaInfo / list_chamas
+    CH-->>API: ChamaSummary data
+    API->>LLM: prompt(context + intent + chama)
+    LLM-->>API: Swahili response text
+    API->>TTS: synthesise(response)
+    TTS-->>API: audio/mpeg bytes
+    API-->>UI: streaming audio + headers
+    UI-->>U: Play response + render metadata
+```
 
 ## 🌐 Swahili Language Support
 
@@ -177,6 +220,59 @@ For the full NCED architecture breakdown see `docs/NCED_IMPLEMENTATION_GUIDE.md`
 - **Financial Vocabulary**: Chama-specific terms
 - **Voice Recognition**: Whisper ASR backend with browser fallback
 - **Text-to-Speech**: Google Cloud / Coqui Swahili voices
+- **Latency Targets**: ASR ≤ 0.5s, LLM ≤ 1.0s, TTS ≤ 1.5s (95th percentile)
+
+## ⛓️ Smart Contract Deep Dive
+
+### Contract Interface
+
+```solidity
+contract ChamaFactory {
+    function createChama(string memory name, uint256 contributionAmount, uint256 contributionFrequency) external returns (uint256);
+    function joinChama(uint256 chamaId) external;
+    function contribute(uint256 chamaId) external payable;
+    function getChamaInfo(uint256 chamaId) external view returns (Chama memory);
+}
+```
+
+| Function | Description | Emits | Notes |
+|----------|-------------|-------|-------|
+| `createChama` | Deploys a new chama with caller as owner | `ChamaCreated` | Owner auto-enrolled, frequency persisted as seconds |
+| `joinChama` | Adds sender as member if active | `ChamaJoined` | Prevents duplicates via `members` mapping |
+| `contribute` | Accepts ETH contribution | `ContributionReceived` | Requires membership and `msg.value >= contributionAmount` |
+| `getChamaInfo` | Returns struct snapshot | - | Queried by backend `/chamas` and `/voice/process` |
+
+### Deployment Workflow
+
+```bash
+cd contracts
+npx hardhat test
+SEPOLIA_RPC_URL=<https://...> PRIVATE_KEY=<0x...>
+npx hardhat run scripts/deploy.js --network sepolia
+npx hardhat verify --network sepolia <deployed-address>  # optional
+```
+
+Set the resulting address in `backend/.env` as `CHAMA_FACTORY_ADDRESS` and restart the FastAPI service.
+
+### On-Chain Data Flow
+
+```mermaid
+graph LR
+    Frontend -->|GET /chamas| FastAPI
+    FastAPI -->|AsyncWeb3| SepoliaRPC[Sepolia JSON-RPC]
+    SepoliaRPC --> ChamaFactory
+    FastAPI -->|ChamaSummary JSON| Frontend
+```
+
+- `ChamaClient.list_chamas(limit)` queries `chamaCount()` then batches `getChamaInfo(id)` using `asyncio.gather`.
+- Responses are normalized into ETH + wei values, stored as `ChamaSummary.to_dict()` and sent to the UI.
+- If the RPC call fails, the UI falls back to mock data but flags degraded blockchain connectivity.
+
+### Observability & Safety
+
+- Prometheus gauges: `asr_latency_seconds`, `llm_latency_seconds`, `tts_latency_seconds`, `voice_requests_total`.
+- SlowAPI throttles `/voice/process` and `/chamas` at 10 req/min per IP.
+- Optional Fernet encryption (`ENCRYPTION_KEY`) obfuscates `session_id` returned to the browser.
 
 ## 🔐 Security
 
@@ -185,6 +281,8 @@ For the full NCED architecture breakdown see `docs/NCED_IMPLEMENTATION_GUIDE.md`
 - **MetaMask Integration**: Industry-standard wallet
 - **Testnet First**: Safe testing environment
 - **No Private Keys**: Never stored or transmitted
+- **Rate Limiting**: SlowAPI enforces 10 req/min per IP on voice endpoints
+- **Session Encryption**: Optional Fernet key encrypts session headers
 
 ## 🎨 Design Philosophy
 
@@ -213,6 +311,14 @@ This project addresses the $10,000 AI & Swahili LLM Challenge by:
 - ✅ **Innovation**: Blockchain + AI for community savings
 - ✅ **Ethical Data Handling**: No personal data stored, privacy-first
 - ✅ **Practicality & Impact**: Solving real financial inclusion challenges
+
+## 🧪 Testing & Benchmarking
+
+- **Hardhat**: `npx hardhat test` covers deployment, membership, and contribution flows.
+- **Voice Pipeline**: `pytest` suite (planned) will mock ASR/LLM/TTS with fixtures; use `/voice/process` curl scripts for latency sampling.
+- **WER Tracking**: `backend/scripts/finetune_whisper.py` exposes evaluation hooks; target `<20%` WER on Mozilla Common Voice Swahili subset.
+- **Load Tests**: `locustfile.py` (coming soon) will stress `/voice/process` and `/chamas` to validate SlowAPI throttling and Redis TTL behaviour.
+- **Metrics**: scrape `/metrics` with Prometheus or run `docker-compose up prometheus grafana` (planned) for dashboarding.
 
 ## 🚧 Roadmap
 
