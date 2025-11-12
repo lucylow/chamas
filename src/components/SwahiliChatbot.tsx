@@ -7,6 +7,7 @@ import { Badge } from './ui/badge';
 import { AIMessage } from '@/lib/mockData';
 import { getAIResponse, speak, stopSpeaking } from '@/lib/swahiliAI';
 import { processVoiceSample } from '@/lib/voiceApi';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SwahiliChatbotProps {
   language: 'sw' | 'en';
@@ -54,7 +55,7 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }
 
-  function handleSend(text?: string) {
+  async function handleSend(text?: string) {
     const messageText = text || input.trim();
     if (!messageText) return;
 
@@ -67,9 +68,33 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
     };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsProcessing(true);
 
-    // Get AI response
-    setTimeout(() => {
+    try {
+      // Get AI response from backend
+      const { data, error } = await supabase.functions.invoke('swahili-chat', {
+        body: { message: messageText }
+      });
+
+      if (error) throw error;
+
+      const aiMessage: AIMessage = {
+        role: 'assistant',
+        content: data.message || (language === 'sw' ? 'Samahani, sijaweza kupata jibu.' : 'Sorry, I could not respond.'),
+        language,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      setBackendAvailable(true);
+      
+      // Auto-speak response if enabled
+      if (isSpeaking) {
+        speak(aiMessage.content, language);
+      }
+    } catch (error) {
+      console.error('AI error:', error);
+      setBackendAvailable(false);
+      // Fallback to mock response
       const response = getAIResponse(messageText);
       const aiMessage: AIMessage = {
         role: 'assistant',
@@ -79,11 +104,12 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
       };
       setMessages(prev => [...prev, aiMessage]);
       
-      // Auto-speak response if enabled
       if (isSpeaking) {
         speak(response.message, response.language);
       }
-    }, 500);
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   function toggleSpeech() {
