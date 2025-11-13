@@ -156,8 +156,13 @@ export const CHAMA_FACTORY_ABI = [
           },
           {
             internalType: "bool",
-            name: "active",
+            name: "archived",
             type: "bool",
+          },
+          {
+            internalType: "uint256",
+            name: "totalContributed",
+            type: "uint256",
           },
         ],
         internalType: "struct ChamaFactory.ChamaDetails",
@@ -171,17 +176,17 @@ export const CHAMA_FACTORY_ABI = [
   {
     inputs: [
       {
-        internalType: "uint256",
-        name: "chamaId",
-        type: "uint256",
+        internalType: "address",
+        name: "_user",
+        type: "address",
       },
     ],
-    name: "getChamaMembers",
+    name: "getUserChamas",
     outputs: [
       {
-        internalType: "address[]",
+        internalType: "uint256[]",
         name: "",
-        type: "address[]",
+        type: "uint256[]",
       },
     ],
     stateMutability: "view",
