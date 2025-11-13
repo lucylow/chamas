@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Chama } from '@/lib/mockData';
-import { formatCurrency, formatDate, formatDateSwahili, getTimeUntil, getTimeUntilSwahili } from '@/lib/utils';
+import { formatCurrency, getTimeUntil, getTimeUntilSwahili } from '@/lib/utils';
 import { Link } from 'wouter';
 import { useAccount } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
@@ -18,13 +18,24 @@ interface ChamaCardProps {
 export default function ChamaCard({ chama, language }: ChamaCardProps) {
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const { joinChama, isJoining } = useChamaActions({
+  const {
+    joinChama,
+    isJoining,
+    isValidChain,
+    error: hookError,
+    isConfirmed,
+    isConfirming,
+    txHash,
+    requiredChainId,
+  } = useChamaActions({
     chamaId: chama.onChainId,
     contributionAmount: chama.rawContributionAmount,
     tokenAddress: chama.contributionToken,
   });
+
+  const error = hookError || localError;
 
   const text = {
     members: language === 'sw' ? 'Wanachama' : 'Members',
@@ -39,14 +50,17 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
     monthly: language === 'sw' ? 'kila mwezi' : 'monthly',
     connectWallet: language === 'sw' ? 'Unganisha pochi yako kwanza' : 'Connect your wallet first',
     joinError: language === 'sw' ? 'Imeshindikana kujiunga na chama' : 'Unable to join chama',
+    wrongNetwork: language === 'sw'
+      ? `Tafadhali badilisha kwenye Sepolia network (Chain ID: ${requiredChainId})`
+      : `Please switch to Sepolia network (Chain ID: ${requiredChainId})`,
+    confirming: language === 'sw' ? 'Inathibitisha...' : 'Confirming...',
+    confirmed: language === 'sw' ? 'Imefanikiwa!' : 'Success!',
+    joining: language === 'sw' ? 'Inajiunga...' : 'Joining...',
   };
 
   const name = language === 'sw' ? chama.nameSwahili : chama.name;
   const description = language === 'sw' ? chama.descriptionSwahili : chama.description;
   const frequency = chama.frequency === 'weekly' ? text.weekly : text.monthly;
-  const nextPayoutDate = language === 'sw' 
-    ? formatDateSwahili(chama.nextPayout)
-    : formatDate(chama.nextPayout);
   const timeUntil = language === 'sw'
     ? getTimeUntilSwahili(chama.nextPayout)
     : getTimeUntil(chama.nextPayout);
@@ -122,30 +136,43 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
         {chama.members < chama.maxMembers && chama.status === 'active' && (
           <Button
             className="flex-1"
-            disabled={isJoining || !chama.onChainId}
+            disabled={isJoining || isConfirming || !chama.onChainId}
             onClick={async () => {
               if (!isConnected) {
                 openConnectModal?.();
                 return;
               }
+              if (!isValidChain) {
+                setLocalError(text.wrongNetwork);
+                return;
+              }
               if (!chama.onChainId) {
-                setError(text.joinError);
+                setLocalError(text.joinError);
                 return;
               }
               try {
-                setError(null);
+                setLocalError(null);
                 await joinChama();
               } catch (err: any) {
-                const message = err?.shortMessage || err?.message || text.joinError;
-                setError(message);
+                const message = err?.message || text.joinError;
+                setLocalError(message);
                 console.error('Failed to join chama:', err);
               }
             }}
           >
-            {isJoining ? (
+            {isConfirming ? (
               <span className="flex items-center justify-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {language === 'sw' ? 'Inajiunga...' : 'Joining...'}
+                {text.confirming}
+              </span>
+            ) : isConfirmed ? (
+              <span className="flex items-center justify-center gap-2">
+                {text.confirmed}
+              </span>
+            ) : isJoining ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {text.joining}
               </span>
             ) : (
               text.join
@@ -156,6 +183,18 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
       {error && (
         <div className="px-6 pb-4">
           <p className="text-xs text-red-600">{error}</p>
+        </div>
+      )}
+      {txHash && (
+        <div className="px-6 pb-4">
+          <a
+            href={`https://sepolia.etherscan.io/tx/${txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:underline"
+          >
+            {language === 'sw' ? 'Ona muamala' : 'View transaction'}
+          </a>
         </div>
       )}
     </Card>

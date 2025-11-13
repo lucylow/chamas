@@ -106,7 +106,7 @@ export function translate(text: string, targetLang: 'sw' | 'en'): string {
 // Mock OpenAI-style API call (for demo)
 export async function callSwahiliLLM(
   messages: AIMessage[],
-  systemPrompt?: string
+  _systemPrompt?: string
 ): Promise<string> {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -124,7 +124,7 @@ export async function callSwahiliLLM(
 export function setupVoiceRecognition(
   onResult: (transcript: string, language: 'sw' | 'en') => void,
   onError: (error: string) => void
-): SpeechRecognition | null {
+): any {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     onError('Voice recognition is not supported in this browser');
     return null;

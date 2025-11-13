@@ -9,7 +9,6 @@ import { useVoiceRecording } from '@/hooks/useVoiceRecording';
 import { speak, stopSpeaking } from '@/lib/swahiliAI';
 import { processVoiceSample } from '@/lib/voiceApi';
 import { getAIResponse } from '@/lib/swahiliAI';
-import { ChatMessage } from '@/types/chat';
 
 interface SwahiliChatbotProps {
   language: 'sw' | 'en';
@@ -58,8 +57,8 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
       
       // Send transcript as message
       await sendMessage(result.transcript || (language === 'sw' ? 'Sauti yako imepokelewa.' : 'Your voice input was received.'));
-    } catch (error) {
-      console.error('Voice processing failed:', error);
+    } catch (err) {
+      console.error('Voice processing failed:', err);
       const fallback = getAIResponse(input || '');
       await sendMessage(fallback.message);
     } finally {
@@ -69,7 +68,7 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
 
   const { isRecording, toggleRecording } = useVoiceRecording({
     onRecordingComplete: handleVoiceComplete,
-    onError: (error) => {
+    onError: (_error) => {
       alert(
         language === 'sw'
           ? 'Tafadhali ruhusu ufikiaji wa kipaza sauti kwenye kivinjari.'
