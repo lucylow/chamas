@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { Search, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ export default function Chamas({ language }: ChamasProps) {
   };
 
   const filteredChamas = useMemo(() => {
-    return chamas.filter(chama => {
+    return chamas.filter((chama: Chama) => {
       const matchesSearch = searchTerm === '' || 
         chama.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chama.nameSwahili.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,7 +99,7 @@ export default function Chamas({ language }: ChamasProps) {
             <Input
               placeholder={text.search}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -151,7 +151,7 @@ export default function Chamas({ language }: ChamasProps) {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredChamas.map(chama => (
+            {filteredChamas.map((chama: Chama) => (
               <ChamaCard key={chama.id} chama={chama} language={language} />
             ))}
           </div>
