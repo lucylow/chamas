@@ -38,48 +38,49 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav className="glass border-b sticky top-0 z-40 shadow-sm">
+      <nav className="glass border-b sticky top-0 z-40 shadow-sm bg-white/90 backdrop-blur-md">
         <div className="container px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
             <Link href="/">
-              <a className="flex items-center gap-1.5 sm:gap-2 font-bold text-lg sm:text-xl text-primary">
-                <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-                {text.appName}
-                <span className="hidden sm:inline text-xs sm:text-sm font-normal text-muted-foreground">
+              <a className="flex items-center gap-1.5 sm:gap-2 font-bold text-lg sm:text-xl text-primary hover:opacity-80 transition-opacity">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+                <span className="whitespace-nowrap">{text.appName}</span>
+                <span className="hidden lg:inline text-xs sm:text-sm font-normal text-muted-foreground ml-1">
                   {text.tagline}
                 </span>
               </a>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
                 const active = isActive(item.href);
                 const Icon = item.icon;
                 return (
                   <Link key={item.href} href={item.href}>
                     <a
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                         active
-                          ? 'bg-primary/10 text-primary shadow-sm'
+                          ? 'bg-primary/10 text-primary shadow-sm font-semibold'
                           : 'text-muted-foreground hover:text-primary hover:bg-muted/50'
                       }`}
                     >
-                      <Icon className={`h-4 w-4 ${active ? 'text-primary' : ''}`} />
-                      {item.label}
+                      <Icon className={`h-4 w-4 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+                      <span>{item.label}</span>
                     </a>
                   </Link>
                 );
               })}
               
-              <div className="ml-4 pl-4 border-l border-border">
+              <div className="ml-2 pl-3 border-l border-border">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setLanguage(language === 'sw' ? 'en' : 'sw')}
+                  className="whitespace-nowrap"
                 >
-                  <Globe className="h-4 w-4 mr-2" />
+                  <Globe className="h-4 w-4 mr-1.5 flex-shrink-0" />
                   {language === 'sw' ? '🇰🇪 SW' : '🇬🇧 EN'}
                 </Button>
               </div>
@@ -89,8 +90,9 @@ function App() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden flex-shrink-0"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -98,29 +100,29 @@ function App() {
 
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
-            <div className="md:hidden py-3 sm:py-4 border-t animate-in slide-in-from-top-2">
-              <div className="flex flex-col gap-2">
+            <div className="md:hidden py-3 sm:py-4 border-t border-border/50 animate-fade-in bg-white/95 backdrop-blur-sm">
+              <div className="flex flex-col gap-1">
                 {navItems.map((item) => {
                   const active = isActive(item.href);
                   const Icon = item.icon;
                   return (
                     <Link key={item.href} href={item.href}>
                       <a
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                           active
-                            ? 'bg-primary/10 text-primary border-l-2 border-primary'
+                            ? 'bg-primary/10 text-primary border-l-2 border-l-primary font-semibold'
                             : 'text-muted-foreground hover:text-primary hover:bg-muted/50'
                         }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <Icon className={`h-4 w-4 ${active ? 'text-primary' : ''}`} />
-                        {item.label}
+                        <Icon className={`h-4 w-4 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+                        <span>{item.label}</span>
                       </a>
                     </Link>
                   );
                 })}
                 
-                <div className="pt-2 mt-2 border-t border-border space-y-2">
+                <div className="pt-3 mt-2 border-t border-border/50 space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -130,7 +132,7 @@ function App() {
                     }}
                     className="w-full justify-start text-sm"
                   >
-                    <Globe className="h-4 w-4 mr-2" />
+                    <Globe className="h-4 w-4 mr-2 flex-shrink-0" />
                     {language === 'sw' ? 'Switch to English' : 'Badilisha kwa Kiswahili'}
                   </Button>
                   <div className="px-1">
