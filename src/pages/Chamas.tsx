@@ -72,17 +72,19 @@ export default function Chamas({ language }: ChamasProps) {
   }, [chamas, searchTerm, filterFrequency]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/30 to-background">
       {/* Header */}
-      <div className="bg-white border-b">
-        <div className="container py-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold">{text.title}</h1>
-              <p className="text-muted-foreground mt-2">{text.subtitle}</p>
+      <div className="bg-white/80 backdrop-blur-sm border-b shadow-sm sticky top-0 z-30">
+        <div className="container py-8 md:py-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-3xl md:text-5xl font-bold text-gradient bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent">
+                {text.title}
+              </h1>
+              <p className="text-muted-foreground text-base md:text-lg">{text.subtitle}</p>
             </div>
             <Link href="/create">
-              <Button size="lg" className="w-full md:w-auto">
+              <Button size="lg" className="w-full md:w-auto shadow-md hover:shadow-lg transition-all hover:scale-105">
                 <Plus className="mr-2 h-5 w-5" />
                 {text.createNew}
               </Button>
@@ -92,65 +94,80 @@ export default function Chamas({ language }: ChamasProps) {
       </div>
 
       {/* Filters */}
-      <div className="container py-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={text.search}
-              value={searchTerm}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      <div className="container py-8">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl border shadow-sm p-6 space-y-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+              <Input
+                placeholder={text.search}
+                value={searchTerm}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                className="pl-11 h-12 text-base border-2 focus:border-primary transition-colors"
+              />
+            </div>
+            
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={filterFrequency === 'all' ? 'default' : 'outline'}
+                onClick={() => setFilterFrequency('all')}
+                className="transition-all hover:scale-105"
+              >
+                {text.all}
+              </Button>
+              <Button
+                variant={filterFrequency === 'weekly' ? 'default' : 'outline'}
+                onClick={() => setFilterFrequency('weekly')}
+                className="transition-all hover:scale-105"
+              >
+                {text.weekly}
+              </Button>
+              <Button
+                variant={filterFrequency === 'monthly' ? 'default' : 'outline'}
+                onClick={() => setFilterFrequency('monthly')}
+                className="transition-all hover:scale-105"
+              >
+                {text.monthly}
+              </Button>
+            </div>
           </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant={filterFrequency === 'all' ? 'default' : 'outline'}
-              onClick={() => setFilterFrequency('all')}
-            >
-              {text.all}
-            </Button>
-            <Button
-              variant={filterFrequency === 'weekly' ? 'default' : 'outline'}
-              onClick={() => setFilterFrequency('weekly')}
-            >
-              {text.weekly}
-            </Button>
-            <Button
-              variant={filterFrequency === 'monthly' ? 'default' : 'outline'}
-              onClick={() => setFilterFrequency('monthly')}
-            >
-              {text.monthly}
-            </Button>
-          </div>
-        </div>
 
-        <div className="mt-4 text-sm text-muted-foreground">
-          {text.showing} {filteredChamas.length} {text.of} {chamas.length || mockChamas.length} {text.chamas}
-        </div>
-
-        {backendError && (
-          <div className="mt-4 flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-            <AlertTriangle className="h-4 w-4" />
-            <span>{backendError}</span>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-muted-foreground font-medium">
+              {text.showing} <span className="text-primary font-bold">{filteredChamas.length}</span> {text.of} <span className="font-semibold">{chamas.length || mockChamas.length}</span> {text.chamas}
+            </div>
           </div>
-        )}
+
+          {backendError && (
+            <div className="flex items-center gap-2 rounded-lg border-2 border-yellow-300 bg-yellow-50/80 backdrop-blur-sm px-4 py-3 text-sm text-yellow-800 shadow-sm">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+              <span>{backendError}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Chamas Grid */}
-      <div className="container pb-12">
+      <div className="container pb-16">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <p className="text-sm">{text.loading}</p>
+          <div className="flex flex-col items-center justify-center gap-4 py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-base text-muted-foreground font-medium">{text.loading}</p>
           </div>
         ) : filteredChamas.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-lg text-muted-foreground">{text.noResults}</p>
+          <div className="text-center py-20">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-4">
+              <Search className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <p className="text-xl font-semibold text-muted-foreground">{text.noResults}</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {language === 'sw' 
+                ? 'Jaribu kubadilisha vichujio au uunde chama kipya'
+                : 'Try adjusting your filters or create a new chama'}
+            </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {filteredChamas.map((chama: Chama) => (
               <ChamaCard key={chama.id} chama={chama} language={language} />
             ))}

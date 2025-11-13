@@ -36,6 +36,12 @@ export async function processVoiceSample(
 
   if (!response.ok) {
     const errorText = await response.text();
+    // Check if it's a service unavailable error (503)
+    if (response.status === 503) {
+      const error = new Error(`Voice service unavailable: ${errorText}`);
+      (error as any).statusCode = 503;
+      throw error;
+    }
     throw new Error(`Voice pipeline failed: ${response.status} ${errorText}`);
   }
 

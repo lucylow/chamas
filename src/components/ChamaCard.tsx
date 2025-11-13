@@ -66,76 +66,94 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
     : getTimeUntil(chama.nextPayout);
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-xl mb-2">{name}</CardTitle>
-            <CardDescription className="line-clamp-2">{description}</CardDescription>
+    <Card className="group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/50 bg-white/90 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl mb-1.5 sm:mb-2 font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+              {name}
+            </CardTitle>
+            <CardDescription className="line-clamp-2 text-xs sm:text-sm leading-relaxed">
+              {description}
+            </CardDescription>
           </div>
-          <Badge variant={chama.status === 'active' ? 'default' : 'secondary'}>
+          <Badge 
+            variant={chama.status === 'active' ? 'default' : 'secondary'}
+            className="shrink-0 ml-2 text-xs"
+          >
             {chama.status === 'active' ? text.active : text.completed}
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">{text.members}</p>
-              <p className="text-sm font-medium">
+      <CardContent className="space-y-4 sm:space-y-5 px-4 sm:px-6">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4">
+          <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+            <div className="p-1.5 sm:p-2 rounded-md bg-primary/10 text-primary shrink-0">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1">{text.members}</p>
+              <p className="text-xs sm:text-sm font-bold text-foreground">
                 {chama.members}/{chama.maxMembers}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Coins className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">{text.contribution}</p>
-              <p className="text-sm font-medium">
+          <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+            <div className="p-1.5 sm:p-2 rounded-md bg-secondary/10 text-secondary shrink-0">
+              <Coins className="h-3 w-3 sm:h-4 sm:w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1">{text.contribution}</p>
+              <p className="text-xs sm:text-sm font-bold text-foreground">
                 {formatCurrency(chama.contributionAmount)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">{text.totalSavings}</p>
-              <p className="text-sm font-medium">
+          <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+            <div className="p-1.5 sm:p-2 rounded-md bg-primary/10 text-primary shrink-0">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1">{text.totalSavings}</p>
+              <p className="text-xs sm:text-sm font-bold text-foreground">
                 {formatCurrency(chama.totalSavings)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">{text.nextPayout}</p>
-              <p className="text-sm font-medium">{timeUntil}</p>
+          <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+            <div className="p-1.5 sm:p-2 rounded-md bg-accent/10 text-accent shrink-0">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1">{text.nextPayout}</p>
+              <p className="text-xs sm:text-sm font-bold text-foreground">{timeUntil}</p>
             </div>
           </div>
         </div>
 
-        <div className="pt-2 border-t">
-          <p className="text-xs text-muted-foreground">
-            {language === 'sw' ? 'Mzunguko' : 'Frequency'}: {frequency}
-          </p>
+        <div className="pt-2 sm:pt-3 border-t border-border/50">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-primary animate-pulse" />
+            <p className="text-[10px] sm:text-xs font-medium text-muted-foreground">
+              {language === 'sw' ? 'Mzunguko' : 'Frequency'}: <span className="text-foreground font-semibold">{frequency}</span>
+            </p>
+          </div>
         </div>
       </CardContent>
 
-      <CardFooter className="flex gap-2">
-        <Link href={`/chama/${chama.id}`} className="flex-1">
-          <Button variant="outline" className="w-full">
+      <CardFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 px-4 sm:px-6 pb-4 sm:pb-6">
+        <Link href={`/chama/${chama.id}`} className="flex-1 w-full sm:w-auto">
+          <Button variant="outline" className="w-full hover:bg-primary hover:text-primary-foreground transition-all hover:scale-[1.02] text-xs sm:text-sm">
             {text.viewDetails}
           </Button>
         </Link>
         {chama.members < chama.maxMembers && chama.status === 'active' && (
           <Button
-            className="flex-1"
+            className="flex-1 w-full sm:w-auto shadow-md hover:shadow-lg transition-all hover:scale-[1.02] text-xs sm:text-sm"
             disabled={isJoining || isConfirming || !chama.onChainId}
             onClick={async () => {
               if (!isConnected) {
@@ -161,18 +179,18 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
             }}
           >
             {isConfirming ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {text.confirming}
+              <span className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                <span className="text-xs sm:text-sm">{text.confirming}</span>
               </span>
             ) : isConfirmed ? (
-              <span className="flex items-center justify-center gap-2">
+              <span className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
                 {text.confirmed}
               </span>
             ) : isJoining ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {text.joining}
+              <span className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                <span className="text-xs sm:text-sm">{text.joining}</span>
               </span>
             ) : (
               text.join
@@ -181,19 +199,24 @@ export default function ChamaCard({ chama, language }: ChamaCardProps) {
         )}
       </CardFooter>
       {error && (
-        <div className="px-6 pb-4">
-          <p className="text-xs text-red-600">{error}</p>
+        <div className="px-4 sm:px-6 pb-3 sm:pb-4">
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-2.5 sm:px-3 py-1.5 sm:py-2">
+            <p className="text-[10px] sm:text-xs font-medium text-destructive break-words">{error}</p>
+          </div>
         </div>
       )}
       {txHash && (
-        <div className="px-6 pb-4">
+        <div className="px-4 sm:px-6 pb-3 sm:pb-4">
           <a
             href={`https://sepolia.etherscan.io/tx/${txHash}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-600 hover:underline"
+            className="text-[10px] sm:text-xs font-medium text-primary hover:text-primary/80 hover:underline transition-colors inline-flex items-center gap-1 break-all"
           >
             {language === 'sw' ? 'Ona muamala' : 'View transaction'}
+            <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
           </a>
         </div>
       )}

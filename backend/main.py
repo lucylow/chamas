@@ -52,6 +52,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
         "https://chamas.lovable.app",
     ],
     allow_credentials=True,
@@ -71,7 +73,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
 class VoiceUpload(BaseModel):
     file: bytes = Field(..., max_length=5 * 1024 * 1024)
     session_id: Optional[str] = Field(default=None, description="UUID v4 session identifier")
-    language: str = Field(default="sw", regex=r"^(sw|en)$")
+    language: str = Field(default="sw", pattern=r"^(sw|en)$")
 
     @field_validator("file")
     @classmethod
@@ -143,7 +145,7 @@ async def process_voice(
     tts: TTSService = Depends(get_tts),
     memory: ContextMemory = Depends(get_memory),
     chama: ChamaClient = Depends(get_chama_client),
-) -> StreamingResponse:
+):
     if not asr.is_ready:
         raise HTTPException(status_code=503, detail="ASR service is not ready.")
     if not llm.is_ready:

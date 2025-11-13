@@ -63,15 +63,20 @@ class LLMService:
             self._client = OpenAI(api_key=api_key, base_url=base_url or None)  # type: ignore[arg-type]
 
         if self._client is None and AutoTokenizer is not None and AutoModelForCausalLM is not None:
-            kwargs: Dict[str, object] = {}
-            if torch is not None:
-                kwargs["torch_dtype"] = torch.float16 if torch.cuda.is_available() else torch.float32  # type: ignore[union-attr]
-                if torch.cuda.is_available():
-                    kwargs["device_map"] = "auto"  # type: ignore[assignment]
+            try:
+                kwargs: Dict[str, object] = {}
+                if torch is not None:
+                    kwargs["torch_dtype"] = torch.float16 if torch.cuda.is_available() else torch.float32  # type: ignore[union-attr]
+                    if torch.cuda.is_available():
+                        kwargs["device_map"] = "auto"  # type: ignore[assignment]
 
-            self._hf_tokenizer = AutoTokenizer.from_pretrained(self._model_id)
-            self._hf_model = AutoModelForCausalLM.from_pretrained(self._model_id, **kwargs)
-            self._hf_model.eval()
+                self._hf_tokenizer = AutoTokenizer.from_pretrained(self._model_id)
+                self._hf_model = AutoModelForCausalLM.from_pretrained(self._model_id, **kwargs)
+                self._hf_model.eval()
+            except Exception:
+                # Model not available (gated, network issue, etc.) - will use fallback
+                self._hf_tokenizer = None
+                self._hf_model = None
 
     @property
     def is_ready(self) -> bool:
