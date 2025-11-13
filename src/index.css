@@ -97,19 +97,23 @@
   }
   
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-colors;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 px-4 py-2 rounded-md font-medium transition-all duration-200 shadow-sm hover:shadow-md;
   }
   
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-md font-medium transition-colors;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 active:scale-95 px-4 py-2 rounded-md font-medium transition-all duration-200 shadow-sm hover:shadow-md;
   }
   
   .card {
-    @apply bg-card text-card-foreground rounded-lg border shadow-sm;
+    @apply bg-card text-card-foreground rounded-lg border shadow-sm transition-all duration-200;
+  }
+  
+  .card-interactive {
+    @apply card hover:shadow-lg hover:-translate-y-0.5 cursor-pointer;
   }
   
   .input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200;
   }
 }
 
