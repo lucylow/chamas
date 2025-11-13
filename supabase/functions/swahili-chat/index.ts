@@ -5,13 +5,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface ChatRequest {
+  message: string;
+}
+
+interface ChatResponse {
+  message: string;
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { message } = await req.json();
+    const body = await req.json() as ChatRequest;
+    const { message } = body;
+    
+    if (!message?.trim()) {
+      return new Response(
+        JSON.stringify({ error: "Message is required" } as ErrorResponse),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -34,6 +54,8 @@ Maelekezo:
 - Tumia MetaMask kwa malipo ya blockchain (Ethereum)
 - Mchango unafanywa kwa USDC au sarafu nyingine za kidijitali`;
 
+    console.log("Processing chat message:", { length: message.length });
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -46,6 +68,8 @@ Maelekezo:
           { role: "system", content: systemPrompt },
           { role: "user", content: message }
         ],
+        temperature: 0.7,
+        max_tokens: 500,
       }),
     });
 
@@ -68,16 +92,19 @@ Maelekezo:
     }
 
     const data = await response.json();
-    const aiMessage = data.choices[0].message.content;
+    const aiMessage = data.choices?.[0]?.message?.content || "Sorry, I could not respond.";
+
+    console.log("AI response generated:", { length: aiMessage.length });
 
     return new Response(
-      JSON.stringify({ message: aiMessage }),
+      JSON.stringify({ message: aiMessage } as ChatResponse),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Chat error:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: errorMessage } as ErrorResponse),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

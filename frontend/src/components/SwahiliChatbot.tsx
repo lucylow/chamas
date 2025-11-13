@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Send, Mic, MicOff, X, Volume2, VolumeX, Loader2, WifiOff } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { AIMessage } from '@/lib/mockData';
-import { getAIResponse, speak, stopSpeaking } from '@/lib/swahiliAI';
+import { useChat } from '@/hooks/useChat';
+import { useVoiceRecording } from '@/hooks/useVoiceRecording';
+import { speak, stopSpeaking } from '@/lib/swahiliAI';
 import { processVoiceSample } from '@/lib/voiceApi';
+import { getAIResponse } from '@/lib/swahiliAI';
+import { ChatMessage } from '@/types/chat';
 
 interface SwahiliChatbotProps {
   language: 'sw' | 'en';
@@ -15,216 +18,102 @@ interface SwahiliChatbotProps {
 
 export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<AIMessage[]>([
-    {
-      role: 'assistant',
-      content: language === 'sw' 
-        ? 'Habari! Mimi ni msaidizi wako wa Chamas. Ninaweza kukusaidia kuunda chama, kujiunge na chama, au kupata maelezo zaidi. Ungependa nini?'
-        : 'Hello! I\'m your Chamas assistant. I can help you create a chama, join a chama, or learn more. What would you like to do?',
-      language,
-      timestamp: new Date(),
-    },
-  ]);
   const [input, setInput] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [lastIntent, setLastIntent] = useState<string | null>(null);
-  const [lastDialect, setLastDialect] = useState<string | null>(null);
-  const [lastConfidence, setLastConfidence] = useState<number | null>(null);
-  const [backendAvailable, setBackendAvailable] = useState(true);
-  const [latencyMs, setLatencyMs] = useState<number | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
+  const [voiceMetrics, setVoiceMetrics] = useState({
+    intent: null as string | null,
+    dialect: null as string | null,
+    confidence: null as number | null,
+    latencyMs: null as number | null,
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const { messages, isProcessing, backendAvailable, sendMessage } = useChat({ language });
+
+  const handleVoiceComplete = async (audioBlob: Blob) => {
+    setIsProcessingVoice(true);
+    const startTime = performance.now();
+
+    try {
+      const result = await processVoiceSample(audioBlob, sessionId ?? undefined, language);
+      
+      setSessionId(result.sessionId);
+      setVoiceMetrics({
+        intent: result.intent,
+        dialect: result.dialect,
+        confidence: result.confidence,
+        latencyMs: Math.round(performance.now() - startTime),
+      });
+
+      // Play audio response
+      if (isSpeaking) {
+        stopSpeaking();
+      }
+      const audio = new Audio(result.audioUrl);
+      audio.addEventListener('ended', () => URL.revokeObjectURL(result.audioUrl));
+      audio.addEventListener('error', () => URL.revokeObjectURL(result.audioUrl));
+      audio.play().catch(err => console.warn('Audio playback failed', err));
+      
+      // Send transcript as message
+      await sendMessage(result.transcript || (language === 'sw' ? 'Sauti yako imepokelewa.' : 'Your voice input was received.'));
+    } catch (error) {
+      console.error('Voice processing failed:', error);
+      const fallback = getAIResponse(input || '');
+      await sendMessage(fallback.message);
+    } finally {
+      setIsProcessingVoice(false);
+    }
+  };
+
+  const { isRecording, toggleRecording } = useVoiceRecording({
+    onRecordingComplete: handleVoiceComplete,
+    onError: (error) => {
+      alert(
+        language === 'sw'
+          ? 'Tafadhali ruhusu ufikiaji wa kipaza sauti kwenye kivinjari.'
+          : 'Please allow microphone access in your browser.'
+      );
+    },
+  });
+
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  useEffect(() => {
-    return () => {
-      stopRecording();
-    };
-  }, [stopRecording]);
-
-  function scrollToBottom() {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  function handleSend(text?: string) {
+  const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText) return;
 
-    // Add user message
-    const userMessage: AIMessage = {
-      role: 'user',
-      content: messageText,
-      language,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMessage]);
     setInput('');
+    await sendMessage(messageText);
 
-    // Get AI response
-    setTimeout(() => {
-      const response = getAIResponse(messageText);
-      const aiMessage: AIMessage = {
-        role: 'assistant',
-        content: response.message,
-        language: response.language,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      
-      // Auto-speak response if enabled
-      if (isSpeaking) {
-        speak(response.message, response.language);
+    // Auto-speak if enabled
+    if (isSpeaking && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant') {
+        speak(lastMessage.content, language);
       }
-    }, 500);
-  }
+    }
+  };
 
-  function toggleSpeech() {
+  const toggleSpeech = () => {
     if (isSpeaking) {
       stopSpeaking();
       setIsSpeaking(false);
     } else {
       setIsSpeaking(true);
     }
-  }
+  };
 
   const text = {
     title: language === 'sw' ? 'Msaidizi wa Chamas' : 'Chamas Assistant',
     placeholder: language === 'sw' ? 'Andika ujumbe...' : 'Type a message...',
-    voiceHint: language === 'sw' ? 'Bonyeza kuzungumza' : 'Click to speak',
     recording: language === 'sw' ? 'Inasikiliza...' : 'Listening...',
   };
 
   const canRecordVoice = typeof window !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
-
-  const stopRecording = useCallback(async () => {
-    const recorder = mediaRecorderRef.current;
-    if (!recorder) return;
-    if (recorder.state !== 'inactive') {
-      recorder.stop();
-    }
-    setIsRecording(false);
-    mediaRecorderRef.current = null;
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  }, []);
-
-  const handleVoiceInput = useCallback(async () => {
-    if (!canRecordVoice) {
-      alert(
-        language === 'sw'
-          ? 'Kivinjari hiki hakina ufikiaji wa kipaza sauti.'
-          : 'This browser does not support microphone recording.'
-      );
-      return;
-    }
-
-    if (isRecording) {
-      await stopRecording();
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-      mediaRecorderRef.current = recorder;
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        setIsRecording(false);
-        const chunkCopy = [...chunksRef.current];
-        chunksRef.current = [];
-        if (chunkCopy.length === 0) {
-          return;
-        }
-        const audioBlob = new Blob(chunkCopy, { type: 'audio/webm' });
-        setIsProcessing(true);
-        const startedAt = performance.now();
-
-        try {
-          const result = await processVoiceSample(audioBlob, sessionId ?? undefined, language);
-          const userTranscript = result.transcript || (language === 'sw' ? 'Sauti yako imepokelewa.' : 'Your voice input was received.');
-
-          const userMessage: AIMessage = {
-            role: 'user',
-            content: userTranscript,
-            language,
-            timestamp: new Date(),
-          };
-
-          const aiMessage: AIMessage = {
-            role: 'assistant',
-            content: result.responseText || (language === 'sw' ? 'Samahani, sijapata jibu sasa.' : 'Sorry, I could not respond right now.'),
-            language,
-            timestamp: new Date(),
-          };
-
-          setMessages(prev => [...prev, userMessage, aiMessage]);
-          setSessionId(result.sessionId);
-          setLastIntent(result.intent);
-          setLastDialect(result.dialect);
-          setLastConfidence(result.confidence);
-          setLatencyMs(Math.round(performance.now() - startedAt));
-          setBackendAvailable(true);
-
-          if (isSpeaking) {
-            stopSpeaking();
-          }
-          const audio = new Audio(result.audioUrl);
-          audio.addEventListener('ended', () => URL.revokeObjectURL(result.audioUrl));
-          audio.addEventListener('error', () => URL.revokeObjectURL(result.audioUrl));
-          audio.play().catch(err => console.warn('Audio playback failed', err));
-        } catch (error) {
-          console.error('Voice processing failed:', error);
-          setBackendAvailable(false);
-          const warningMessage: AIMessage = {
-            role: 'assistant',
-            content: language === 'sw'
-              ? 'Kuna hitilafu kwenye huduma ya sauti. Nitaendelea kwa maandishi.'
-              : 'There was an error with the voice service. I will continue in text.',
-            language,
-            timestamp: new Date(),
-          };
-          const fallback = getAIResponse(input || '');
-          const aiMessage: AIMessage = {
-            role: 'assistant',
-            content: fallback.message || (language === 'sw' ? 'Samahani, jaribu tena baadaye.' : 'Sorry, please try again later.'),
-            language: fallback.language,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, warningMessage, aiMessage]);
-        } finally {
-          setIsProcessing(false);
-        }
-      };
-
-      recorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Microphone access denied:', error);
-      alert(
-        language === 'sw'
-          ? 'Tafadhali ruhusu ufikiaji wa kipaza sauti kwenye kivinjari.'
-          : 'Please allow microphone access in your browser.'
-      );
-    }
-  }, [canRecordVoice, input, isRecording, isSpeaking, language, sessionId, stopRecording]);
 
   if (!isOpen) {
     return (
@@ -314,9 +203,9 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
             <Button
               size="icon"
               variant={isRecording ? 'destructive' : 'outline'}
-              onClick={() => handleVoiceInput()}
+              onClick={toggleRecording}
               className={isRecording ? 'recording-indicator animate-pulse' : ''}
-              disabled={isProcessing}
+              disabled={isProcessing || isProcessingVoice}
             >
               {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
@@ -330,36 +219,36 @@ export default function SwahiliChatbot({ language, onLanguageChange }: SwahiliCh
             {text.recording}
           </p>
         )}
-        {isProcessing && (
+        {(isProcessing || isProcessingVoice) && (
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            {language === 'sw' ? 'Inachakata sauti...' : 'Processing voice...'}
+            {language === 'sw' ? 'Inachakata...' : 'Processing...'}
           </div>
         )}
         {!backendAvailable && (
           <div className="flex items-center justify-center gap-2 text-xs text-destructive mt-2">
             <WifiOff className="h-4 w-4" />
             {language === 'sw'
-              ? 'Huduma ya sauti haipatikani kwa sasa. Tumerejea kwenye maandishi.'
-              : 'Voice service unavailable. Falling back to text.'}
+              ? 'Huduma haipatikani. Tumerejea kwenye maandishi.'
+              : 'Service unavailable. Falling back to text.'}
           </div>
         )}
-        {(lastIntent || lastDialect || latencyMs) && (
+        {(voiceMetrics.intent || voiceMetrics.dialect || voiceMetrics.latencyMs) && (
           <div className="mt-3 rounded-md bg-muted px-3 py-2 text-[11px] leading-4 text-muted-foreground space-y-1">
-            {latencyMs !== null && (
+            {voiceMetrics.latencyMs !== null && (
               <p>
-                {language === 'sw' ? 'Muda wa majibu:' : 'Latency:'} {latencyMs}ms
+                {language === 'sw' ? 'Muda wa majibu:' : 'Latency:'} {voiceMetrics.latencyMs}ms
               </p>
             )}
-            {lastIntent && (
+            {voiceMetrics.intent && (
               <p>
-                {language === 'sw' ? 'Nia iliyogunduliwa:' : 'Detected intent:'} {lastIntent}
+                {language === 'sw' ? 'Nia iliyogunduliwa:' : 'Detected intent:'} {voiceMetrics.intent}
               </p>
             )}
-            {lastDialect && (
+            {voiceMetrics.dialect && (
               <p>
-                {language === 'sw' ? 'Lahaja:' : 'Dialect:'} {lastDialect}
-                {lastConfidence !== null && ` · ${(lastConfidence * 100).toFixed(0)}%`}
+                {language === 'sw' ? 'Lahaja:' : 'Dialect:'} {voiceMetrics.dialect}
+                {voiceMetrics.confidence !== null && ` · ${(voiceMetrics.confidence * 100).toFixed(0)}%`}
               </p>
             )}
           </div>
