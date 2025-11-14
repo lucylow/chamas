@@ -339,39 +339,66 @@ export default function Chamas({ language }: ChamasProps) {
                 </Button>
 
                 <div className="flex items-center gap-2 flex-wrap justify-center">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                    // Show first page, last page, current page, and pages around current
-                    const showPage = 
-                      page === 1 || 
-                      page === totalPages || 
-                      (page >= currentPage - 1 && page <= currentPage + 1);
+                  {(() => {
+                    const pages: (number | 'ellipsis')[] = [];
+                    const showEllipsis = totalPages > 7;
                     
-                    if (!showPage) {
-                      // Show ellipsis
-                      if (page === currentPage - 2 || page === currentPage + 2) {
+                    if (!showEllipsis) {
+                      // Show all pages if 7 or fewer
+                      for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i);
+                      }
+                    } else {
+                      // Always show first page
+                      pages.push(1);
+                      
+                      if (currentPage > 3) {
+                        pages.push('ellipsis');
+                      }
+                      
+                      // Show pages around current
+                      const start = Math.max(2, currentPage - 1);
+                      const end = Math.min(totalPages - 1, currentPage + 1);
+                      for (let i = start; i <= end; i++) {
+                        if (i !== 1 && i !== totalPages) {
+                          pages.push(i);
+                        }
+                      }
+                      
+                      if (currentPage < totalPages - 2) {
+                        pages.push('ellipsis');
+                      }
+                      
+                      // Always show last page
+                      if (totalPages > 1) {
+                        pages.push(totalPages);
+                      }
+                    }
+                    
+                    return pages.map((item, index) => {
+                      if (item === 'ellipsis') {
                         return (
-                          <span key={page} className="px-2 py-1 text-muted-foreground text-sm font-medium">
+                          <span key={`ellipsis-${index}`} className="px-2 py-1 text-muted-foreground text-sm font-medium">
                             ...
                           </span>
                         );
                       }
-                      return null;
-                    }
-
-                    return (
-                      <Button
-                        key={page}
-                        variant={page === currentPage ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handlePageChange(page)}
-                        className="min-w-[2.5rem] text-sm font-semibold transition-all duration-200 hover:scale-110 active:scale-95 rounded-xl"
-                        aria-label={`${text.page} ${page}`}
-                        aria-current={page === currentPage ? 'page' : undefined}
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
+                      
+                      return (
+                        <Button
+                          key={item}
+                          variant={item === currentPage ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handlePageChange(item)}
+                          className="min-w-[2.5rem] text-sm font-semibold transition-all duration-200 hover:scale-110 active:scale-95 rounded-xl"
+                          aria-label={`${text.page} ${item}`}
+                          aria-current={item === currentPage ? 'page' : undefined}
+                        >
+                          {item}
+                        </Button>
+                      );
+                    });
+                  })()}
                 </div>
 
                 <Button

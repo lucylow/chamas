@@ -2,26 +2,27 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import compression from 'vite-plugin-compression2';
+import viteCompression from 'vite-plugin-compression';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
     react(),
-    compression({
+    viteCompression({
       algorithm: 'gzip',
-      exclude: [/\.(br)$/, /\.(gz)$/, /\.(png)$/, /\.(jpg)$/, /\.(jpeg)$/, /\.(svg)$/, /\.(webp)$/],
-      threshold: 0,
-      deleteOriginalAssets: false,
-    }) as any,
-    compression({
+      ext: '.gz',
+      threshold: 0, // Compress all files
+      deleteOriginFile: false,
+      filter: /\.(js|mjs|json|css|html|svg)$/i,
+    }),
+    viteCompression({
       algorithm: 'brotliCompress',
-      exclude: [/\.(br)$/, /\.(gz)$/, /\.(png)$/, /\.(jpg)$/, /\.(jpeg)$/, /\.(svg)$/, /\.(webp)$/],
-      threshold: 0,
-      filename: '[path][base].br',
-      deleteOriginalAssets: false,
-    }) as any,
+      ext: '.br',
+      threshold: 0, // Compress all files
+      deleteOriginFile: false,
+      filter: /\.(js|mjs|json|css|html|svg)$/i,
+    }),
   ],
   resolve: {
     alias: {
