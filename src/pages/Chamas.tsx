@@ -246,9 +246,9 @@ export default function Chamas({ language }: ChamasProps) {
           </div>
 
           {backendError && (
-            <div className="flex items-center gap-3 rounded-xl border-2 border-yellow-300/50 bg-gradient-to-r from-yellow-50/90 to-yellow-50/50 backdrop-blur-sm px-5 py-4 text-sm text-yellow-900 shadow-sm">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0 text-yellow-600" />
-              <span className="flex-1 font-medium">{backendError}</span>
+            <div className="flex items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <span>{backendError}</span>
             </div>
           )}
         </div>
