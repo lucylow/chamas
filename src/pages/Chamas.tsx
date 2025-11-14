@@ -294,53 +294,35 @@ export default function Chamas({ language }: ChamasProps) {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {paginatedChamas.map((chama: Chama, index) => (
-                <div
-                  key={chama.id}
-                  className="opacity-0 animate-fade-in"
-                  style={{ 
-                    animationDelay: `${index * 50}ms`, 
-                    animationFillMode: 'forwards',
-                    animationDuration: '500ms'
-                  }}
-                >
-                  <ChamaCard chama={chama} language={language} />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedChamas.map((chama: Chama) => (
+                <ChamaCard key={chama.id} chama={chama} language={language} />
               ))}
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-10 sm:mt-12 md:mt-16 flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-fade-in px-4" style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}>
+              <div className="mt-12 flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm font-semibold px-4 py-2.5 rounded-xl"
-                  aria-label={text.previous}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">{text.previous}</span>
+                  <span className="hidden sm:inline ml-1">{text.previous}</span>
                 </Button>
 
-                <div className="flex items-center gap-2 flex-wrap justify-center">
+                <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                    // Show first page, last page, current page, and pages around current
                     const showPage = 
                       page === 1 || 
                       page === totalPages || 
                       (page >= currentPage - 1 && page <= currentPage + 1);
                     
                     if (!showPage) {
-                      // Show ellipsis
                       if (page === currentPage - 2 || page === currentPage + 2) {
-                        return (
-                          <span key={page} className="px-2 py-1 text-muted-foreground text-sm font-medium">
-                            ...
-                          </span>
-                        );
+                        return <span key={page} className="px-2 text-muted-foreground">...</span>;
                       }
                       return null;
                     }
@@ -351,9 +333,7 @@ export default function Chamas({ language }: ChamasProps) {
                         variant={page === currentPage ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => handlePageChange(page)}
-                        className="min-w-[2.5rem] text-sm font-semibold transition-all duration-200 hover:scale-110 active:scale-95 rounded-xl"
-                        aria-label={`${text.page} ${page}`}
-                        aria-current={page === currentPage ? 'page' : undefined}
+                        className="min-w-[2.5rem]"
                       >
                         {page}
                       </Button>
@@ -366,10 +346,8 @@ export default function Chamas({ language }: ChamasProps) {
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm font-semibold px-4 py-2.5 rounded-xl"
-                  aria-label={text.next}
                 >
-                  <span className="hidden sm:inline">{text.next}</span>
+                  <span className="hidden sm:inline mr-1">{text.next}</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
