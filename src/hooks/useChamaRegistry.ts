@@ -97,13 +97,13 @@ export function useChamaRegistry({ language }: FetchOptions) {
               })) as `0x${string}`[];
             } catch (error) {
               console.error(`Failed to get members for chama ${chamaId}:`, error);
-              // Try to get memberCount as fallback
+              // Try to get memberCount as fallback (not used currently but kept for future use)
               try {
-                const memberCount = (await publicClient.readContract({
+                await publicClient.readContract({
                   address: details.contractAddress,
                   abi: CHAMA_ABI,
                   functionName: "memberCount",
-                })) as bigint;
+                });
                 // If we can't get the list, we at least know the count
                 // Return empty array but the count will be used elsewhere if available
               } catch (countError) {
@@ -154,7 +154,7 @@ export function useChamaRegistry({ language }: FetchOptions) {
             // Contract uses archived, frontend uses active status
             const isActive = !details.archived;
 
-            return {
+            const chama: Chama = {
               id: `chama-${details.id.toString()}`,
               onChainId: details.id,
               name: fallbackName,
@@ -172,7 +172,8 @@ export function useChamaRegistry({ language }: FetchOptions) {
               nextPayout: new Date(Number(nextRotationTime) * 1000),
               createdBy: details.creator,
               status: isActive ? "active" : "completed",
-            } satisfies Chama;
+            };
+            return chama;
           } catch (error) {
             console.error(`Failed to load chama ${chamaId}:`, error);
             // Return null for failed chamas, filter them out later
@@ -182,7 +183,13 @@ export function useChamaRegistry({ language }: FetchOptions) {
       );
 
       // Filter out null values (failed chamas)
-      return chamaData.filter((chama): chama is Chama => chama !== null);
+      const validChamas: Chama[] = [];
+      for (const chama of chamaData) {
+        if (chama !== null) {
+          validChamas.push(chama);
+        }
+      }
+      return validChamas;
     },
   });
 }

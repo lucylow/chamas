@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, Send, Mic, MicOff, X, Volume2, VolumeX, Loader2, WifiOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, Mic, MicOff, X, Volume2, VolumeX, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';

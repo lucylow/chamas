@@ -7,7 +7,7 @@ declare module 'wouter' {
     replace: (to: string) => void;
   }
 
-  export function useLocation(): LocationHook;
+  export function useLocation(): [string, (to: string, replace?: boolean) => void];
   export function useRoute(pattern: string): [boolean, Record<string, string> | null];
 
   export interface LinkProps {
