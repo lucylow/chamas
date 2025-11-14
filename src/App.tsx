@@ -5,6 +5,7 @@ import { Button } from './components/ui/button';
 import SwahiliChatbot from './components/SwahiliChatbot';
 import Home from './pages/Home';
 import Chamas from './pages/Chamas';
+import Create from './pages/Create';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 function App() {
@@ -155,16 +156,7 @@ function App() {
             <Chamas language={language} />
           </Route>
           <Route path="/create">
-            <div className="container px-4 sm:px-6 py-8 sm:py-12">
-              <h1 className="text-2xl sm:text-3xl font-bold">
-                {language === 'sw' ? 'Unda Chama Kipya' : 'Create New Chama'}
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                {language === 'sw' 
-                  ? 'Inakuja hivi karibuni...'
-                  : 'Coming soon...'}
-              </p>
-            </div>
+            <Create language={language} />
           </Route>
           <Route>
             <div className="container px-4 sm:px-6 py-8 sm:py-12 text-center">
