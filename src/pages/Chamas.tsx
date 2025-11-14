@@ -181,7 +181,7 @@ export default function Chamas({ language }: ChamasProps) {
 
       {/* Filters */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-border/50 shadow-lg p-6 sm:p-8 space-y-6 transition-all duration-300 hover:shadow-xl">
+        <div className="bg-white rounded-lg border shadow-sm p-4 sm:p-6 space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10 transition-colors group-focus-within:text-primary" />
@@ -189,56 +189,47 @@ export default function Chamas({ language }: ChamasProps) {
                 placeholder={text.search}
                 value={searchTerm}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="pl-12 pr-11 h-12 text-base border-2 border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 rounded-xl bg-background/50"
+                className="pl-9 pr-9 h-10"
               />
               {searchTerm && (
                 <button
                   onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-muted hover:bg-muted-foreground/10 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full hover:bg-muted flex items-center justify-center"
                   aria-label="Clear search"
                 >
-                  <X className="h-4 w-4 text-muted-foreground" />
+                  <X className="h-3 w-3 text-muted-foreground" />
                 </button>
               )}
             </div>
             
-            <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex gap-2">
               <Button
                 variant={filterFrequency === 'all' ? 'default' : 'outline'}
                 onClick={() => setFilterFrequency('all')}
-                className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] font-semibold text-sm px-5 py-2.5 rounded-xl"
+                size="sm"
               >
                 {text.all}
               </Button>
               <Button
                 variant={filterFrequency === 'weekly' ? 'default' : 'outline'}
                 onClick={() => setFilterFrequency('weekly')}
-                className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] font-semibold text-sm px-5 py-2.5 rounded-xl"
+                size="sm"
               >
                 {text.weekly}
               </Button>
               <Button
                 variant={filterFrequency === 'monthly' ? 'default' : 'outline'}
                 onClick={() => setFilterFrequency('monthly')}
-                className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] font-semibold text-sm px-5 py-2.5 rounded-xl"
+                size="sm"
               >
                 {text.monthly}
               </Button>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-5 border-t border-border/30">
-            <div className="text-sm text-muted-foreground font-medium flex flex-wrap items-center gap-2">
-              <span>
-                {text.showing} <span className="text-primary font-bold text-base">
-                  {filteredChamas.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredChamas.length)}
-                </span> {text.of} <span className="font-semibold text-foreground">{filteredChamas.length}</span> {text.chamas}
-              </span>
-              {totalPages > 1 && (
-                <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm border border-primary/20">
-                  {text.page} {currentPage} {text.of} {totalPages}
-                </span>
-              )}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              {text.showing} <span className="text-primary font-semibold">{filteredChamas.length}</span> {text.of} <span className="font-semibold">{chamas.length || mockChamas.length}</span> {text.chamas}
             </div>
             {(searchTerm || filterFrequency !== 'all') && (
               <Button
@@ -248,7 +239,6 @@ export default function Chamas({ language }: ChamasProps) {
                   clearSearch();
                   setFilterFrequency('all');
                 }}
-                className="text-sm hover:bg-muted/50 transition-colors"
               >
                 {language === 'sw' ? 'Ondoa vichujio' : 'Clear filters'}
               </Button>
@@ -265,7 +255,7 @@ export default function Chamas({ language }: ChamasProps) {
       </div>
 
       {/* Chamas Grid */}
-      <div className="container px-4 sm:px-6 pb-12 sm:pb-16 md:pb-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {isLoading ? (
           <div className="space-y-8">
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
