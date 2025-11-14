@@ -8,7 +8,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      // Enable Fast Refresh and ensure CSS is processed
+      babel: {
+        plugins: [],
+      },
+    }),
     viteCompression({
       algorithm: 'gzip',
       ext: '.gz',
@@ -28,9 +33,15 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // Ensure proper module resolution
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.css'],
   },
   define: {
     global: 'globalThis',
+  },
+  css: {
+    // PostCSS will be automatically detected from postcss.config.cjs
+    // Vite automatically processes PostCSS when the config file exists
   },
   server: {
     host: true,

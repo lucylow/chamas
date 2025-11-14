@@ -7,6 +7,8 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
     "./frontend/src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.css",
+    "./frontend/src/**/*.css",
   ],
   theme: {
     extend: {
