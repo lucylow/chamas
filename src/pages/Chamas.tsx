@@ -180,7 +180,7 @@ export default function Chamas({ language }: ChamasProps) {
       </div>
 
       {/* Filters */}
-      <div className="container px-4 sm:px-6 py-6 sm:py-8 md:py-10">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-border/50 shadow-lg p-6 sm:p-8 space-y-6 transition-all duration-300 hover:shadow-xl">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 group">
