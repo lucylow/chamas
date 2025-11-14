@@ -118,19 +118,20 @@ export default function Home({ language }: HomeProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       {/* Hero Section with Pattern */}
-      <section className="container px-4 sm:px-6 py-12 sm:py-16 md:py-20 lg:py-32 pattern-bg">
-        <div className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-gradient animate-fade-in leading-tight">
+      <section className="container px-4 sm:px-6 py-12 sm:py-16 md:py-20 lg:py-32 pattern-bg relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
+        <div className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8 relative z-10">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gradient animate-fade-in leading-tight">
             {text.hero.title}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto animate-fade-in px-2">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto animate-fade-in px-2 font-medium">
             {text.hero.subtitle}
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2 sm:pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2 sm:pt-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
             <WalletConnect language={language} />
             <Link href="/chamas">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 font-semibold">
                 {text.hero.viewChamas}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -138,7 +139,7 @@ export default function Home({ language }: HomeProps) {
           </div>
           
           {/* Backend Status */}
-          <div className="max-w-md mx-auto mt-6 sm:mt-8">
+          <div className="max-w-md mx-auto mt-6 sm:mt-8 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <BackendStatus language={language} compact={true} />
           </div>
         </div>
@@ -155,15 +156,23 @@ export default function Home({ language }: HomeProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {text.features.items.map((feature, index) => (
-            <Card key={index} className="border-2 hover:border-primary transition-all hover-lift shadow-md hover:shadow-glow">
+            <Card 
+              key={index} 
+              className="border-2 hover:border-primary/70 transition-all duration-300 hover-lift shadow-md hover:shadow-xl bg-white/90 backdrop-blur-sm overflow-hidden group opacity-0 animate-fade-in"
+              style={{ 
+                animationDelay: `${index * 100}ms`, 
+                animationFillMode: 'forwards',
+                animationDuration: '500ms'
+              }}
+            >
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full gradient-primary flex items-center justify-center mb-3 sm:mb-4 shadow-glow">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full gradient-primary flex items-center justify-center mb-3 sm:mb-4 shadow-glow group-hover:scale-110 transition-transform duration-300">
                   <feature.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <CardTitle className="text-lg sm:text-xl">{feature.title}</CardTitle>
+                <CardTitle className="text-lg sm:text-xl font-bold group-hover:text-primary transition-colors duration-300">{feature.title}</CardTitle>
               </CardHeader>
               <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                <CardDescription className="text-sm sm:text-base">{feature.description}</CardDescription>
+                <CardDescription className="text-sm sm:text-base leading-relaxed">{feature.description}</CardDescription>
               </CardContent>
             </Card>
           ))}
@@ -172,23 +181,31 @@ export default function Home({ language }: HomeProps) {
 
       {/* How It Works */}
       <section className="container px-4 sm:px-6 py-12 sm:py-16 md:py-20">
-        <div className="glass rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12">
-          <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12">
+        <div className="glass rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+          <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12 animate-fade-in">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient">{text.howItWorks.title}</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {text.howItWorks.steps.map((step, index) => (
-              <div key={index} className="relative">
-                <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
-                  <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full gradient-hero text-white flex items-center justify-center text-xl sm:text-2xl font-bold shadow-glow pulse-ring">
+              <div 
+                key={index} 
+                className="relative opacity-0 animate-fade-in"
+                style={{ 
+                  animationDelay: `${index * 150}ms`, 
+                  animationFillMode: 'forwards',
+                  animationDuration: '500ms'
+                }}
+              >
+                <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4 group hover:scale-105 transition-transform duration-300">
+                  <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full gradient-hero text-white flex items-center justify-center text-xl sm:text-2xl font-bold shadow-glow pulse-ring group-hover:shadow-xl transition-shadow duration-300">
                     {step.number}
                   </div>
-                  <h3 className="text-lg sm:text-xl font-semibold">{step.title}</h3>
-                  <p className="text-sm sm:text-base text-muted-foreground">{step.description}</p>
+                  <h3 className="text-lg sm:text-xl font-bold group-hover:text-primary transition-colors duration-300">{step.title}</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{step.description}</p>
                 </div>
                 {index < text.howItWorks.steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-6 sm:top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-primary to-secondary" />
+                  <div className="hidden lg:block absolute top-6 sm:top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-primary/50 to-secondary/50 group-hover:from-primary group-hover:to-secondary transition-all duration-300" />
                 )}
               </div>
             ))}
@@ -198,16 +215,24 @@ export default function Home({ language }: HomeProps) {
 
       {/* Stats Section */}
       <section className="container px-4 sm:px-6 py-12 sm:py-16 md:py-20">
-        <div className="gradient-hero rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-white shadow-xl">
-          <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12">
+        <div className="gradient-hero rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-white shadow-xl hover:shadow-2xl transition-shadow duration-300">
+          <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12 animate-fade-in">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">{text.stats.title}</h2>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
             {text.stats.items.map((stat, index) => (
-              <div key={index} className="text-center">
-                <p className="text-3xl sm:text-4xl md:text-5xl font-bold">{stat.value}</p>
-                <p className="text-white/80 mt-1 sm:mt-2 font-medium text-xs sm:text-sm md:text-base">{stat.label}</p>
+              <div 
+                key={index} 
+                className="text-center opacity-0 animate-fade-in group hover:scale-110 transition-transform duration-300"
+                style={{ 
+                  animationDelay: `${index * 100}ms`, 
+                  animationFillMode: 'forwards',
+                  animationDuration: '500ms'
+                }}
+              >
+                <p className="text-3xl sm:text-4xl md:text-5xl font-extrabold group-hover:scale-110 transition-transform duration-300">{stat.value}</p>
+                <p className="text-white/80 mt-1 sm:mt-2 font-semibold text-xs sm:text-sm md:text-base">{stat.label}</p>
               </div>
             ))}
           </div>

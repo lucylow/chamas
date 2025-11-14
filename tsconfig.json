@@ -27,4 +27,3 @@
   "include": ["src", "frontend/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
-
