@@ -160,21 +160,18 @@ export default function Chamas({ language }: ChamasProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary/5">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-border/50 shadow-sm sticky top-0 z-30 transition-all duration-300">
-        <div className="container px-4 sm:px-6 py-6 sm:py-8 md:py-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-8">
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold bg-gradient-to-r from-primary via-primary/80 to-secondary bg-clip-text text-transparent leading-tight tracking-tight">
+      <div className="bg-white/90 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-30">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 {text.title}
               </h1>
-              <p className="text-muted-foreground text-sm sm:text-base md:text-lg font-medium">{text.subtitle}</p>
+              <p className="text-muted-foreground text-sm sm:text-base mt-2">{text.subtitle}</p>
             </div>
             <Link href="/create">
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-sm sm:text-base font-semibold px-6 py-6"
-              >
-                <Plus className="mr-2 h-5 w-5" />
+              <Button size="lg" className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
                 {text.createNew}
               </Button>
             </Link>
